@@ -140,7 +140,9 @@ class Information(commands.Cog):
                     "Description": command.description,
                     "Sub-commands": "`" + command.name + " " + f"`, `{command.name} ".join(
                     sorted([subcommand.name for subcommand in command.commands])) + "`",
-                    "Aliases": f"`{'`, `'.join(command.aliases)}`" if len(command.aliases) > 0 else ""
+                    "Aliases": f"`{'`, `'.join(command.aliases)}`"
+                    if len(command.aliases) > 0
+                    else ""
                 }
 
                 # add new subcommands
