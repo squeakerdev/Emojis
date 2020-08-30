@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
 	name = "Emojis",
 	version = "0.2", # ?
-	author = "ruby/passivity", # Not sure what to take :D
+	author = "ruby#7777",
 	py_modules = ["bot", "information", "settings"],
 	install_requires = [
 	"aiohttp==3.6.2",
