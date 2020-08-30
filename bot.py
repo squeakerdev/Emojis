@@ -17,13 +17,6 @@ class CustomCommandError(Exception):
     pass
 
 
-class States:
-    OK = '[\033[94m-\033[0m]'
-    SUCCESS = '[\033[92m+\033[0m]'
-    WARNING = '[\033[93m?\033[0m]'
-    FAIL = '[\033[91m!\033[0m]'
-
-
 # Colors used in the Bot
 class Colours:
     base = discord.Color(7059952)
@@ -33,10 +26,21 @@ class Colours:
 
 
 def get_prefix(client, message):
+    """
+    Get the prefix for a specified server. 
+
+    :param client: the bot
+    :param message: the message object that needs checking (comes from on_message)
+    :return: the server's custom prefix (str)
+    """
+
+    # query database
     prefix = prefix_list.find_one({"g": str(message.guild.id)}, {"_id": 0, "pr": 1})
+
+    # return prefix
     try:
         return prefix["pr"]
-    except:
+    except KeyError:
         return ">"
 
 
@@ -47,29 +51,45 @@ async def install_emoji(ctx, emoji_json, success_message: str = None):
     :param ctx: context of the target guild
     :param emoji_json: takes the format {"image": image_url, "title": emoji_name}
     :param success_message: the message to send to the channel upon emoji install. Defaults to None
-    :return: the emoji installed
+    :return: the emoji installed (discord.Emoji)
     """
 
+    # download image data
     response = requests.get(emoji_json["image"], stream=True)
 
+    # image downloaded successfully
     if response.status_code == 200:
+
+        # save image to file
         with open(f"./emojis/{emoji_json['title']}.gif", "wb") as img:
             response.raw.decode_content = True
             shutil.copyfileobj(response.raw, img)
+
+    # failed to download
     else:
         raise Exception(f"Bad status code uploading {emoji_json['title']} received: {response.status_code}")
 
     with open(f"./emojis/{emoji_json['title']}.gif", "rb") as image:
+
+        # install directly to guild
         if isinstance(ctx, discord.Guild):
             new_emoji = await ctx.create_custom_emoji(name=emoji_json['title'], image=image.read())
+
+        # get guild from context, then install
         else:
             new_emoji = await ctx.message.guild.create_custom_emoji(name=emoji_json['title'], image=image.read())
 
+        # post the success message
         if success_message:
-            random_embed = discord.Embed(title=success_message)
-            random_embed.colour = Colours.success
+            random_embed = discord.Embed(
+                title=success_message,
+                colour=Colours.success,
+                description=f"`:{emoji_json['title']}:`"
+            )
+
             random_embed.set_thumbnail(url=emoji_json["image"])
-            random_embed.add_field(name="Emoji", value=f"`:{emoji_json['title']}:`")
+
+            # send
             await ctx.message.channel.send(embed=random_embed)
 
         return new_emoji
@@ -207,7 +227,7 @@ async def on_ready():
     Run setup stuff that only needs to happen once.
     """
 
-    await bot.change_presence(activity=discord.Game(name=f"just updated!"))
+    await bot.change_presence(activity=discord.Game(name="just updated!"))
 
     print(f"Serving {sum(guild.member_count for guild in bot.guilds)} users in {len(bot.guilds)} servers!")
 
@@ -215,13 +235,19 @@ async def on_ready():
         try:
             await sleep(20)
             await bot.change_presence(activity=discord.Game(name=f"ping for prefix | {len(bot.guilds)} servers"))
-        except:
-            continue
+        except Exception as err:
+            print("Failed to change presence:", err)
 
 
 async def send_error(ctx, err, extra_info=None, full_error=None):
     """
-    Send an error message to s specified channel; extra_info will add more detail.
+    Send an error message to a specified channel.
+
+    :param ctx: context
+    :param err: the error string
+    :param extra_info: any extra info that the user might want to know
+    :param full_error: the full error
+    :return: N/A
     """
 
     error_embed = discord.Embed()
@@ -236,7 +262,7 @@ async def send_error(ctx, err, extra_info=None, full_error=None):
 
 
 if __name__ == "__main__":
-    startup_extensions = ["information", "settings"]
+    startup_extensions = ["information", "settings", "emoji", "management"]
 
     for extension in startup_extensions:
         bot.load_extension(extension)
