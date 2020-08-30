@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
 	name = "Emojis",
-	version = "0.2", # ?
+	version = "0.1",
 	author = "ruby#7777",
 	py_modules = ["bot", "information", "settings"],
 	install_requires = [
