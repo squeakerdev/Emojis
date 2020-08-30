@@ -19,6 +19,8 @@ def setup(bot):
 
 
 class Settings(commands.Cog):
+    __slots__ = ["bot"]
+
     def __init__(self, bot):
         self.bot = bot
 
