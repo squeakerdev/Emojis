@@ -13,6 +13,7 @@ mgclient = mg.MongoClient("mongodb://localhost:27017")
 db = mgclient["Emojis"]
 prefix_list = db["prefixes"]
 
+
 def setup(bot):
     bot.remove_command("help")
     bot.add_cog(Information(bot))

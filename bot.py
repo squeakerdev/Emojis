@@ -23,12 +23,14 @@ class States:
     WARNING = '[\033[93m?\033[0m]'
     FAIL = '[\033[91m!\033[0m]'
 
+
 # Colors used in the Bot
 class Colours:
     base = discord.Color(7059952)
     success = discord.Color(3066993)
     fail = discord.Color(15742004)
     warn = discord.Color(16707936)
+
 
 def get_prefix(client, message):
     prefix = prefix_list.find_one({"g": str(message.guild.id)}, {"_id": 0, "pr": 1})
