@@ -8,6 +8,7 @@ import pymongo as mg
 
 category_emojis = ["🔹", "🔹", "🔹", "🔹"]
 
+# Setting up Database
 mgclient = mg.MongoClient("mongodb://localhost:27017")
 db = mgclient["Emojis"]
 prefix_list = db["prefixes"]
@@ -129,23 +130,27 @@ class Information(commands.Cog):
                 "Aliases": f"`{'`, `'.join(sorted(command.aliases))}`" if len(command.aliases) > 0 else ""
             } for command in self.bot.commands}
 
-        # add command groups  Wow this is a fucking mess
+        # add command groups  (Wow this is a fucking mess)
         for command in self.bot.commands:
             try:
                 # update existing entries
                 bot_commands[command.name] = {
-                    "Usage": f"`{command.usage}`" if command.usage is not None else "",
+                    "Usage": f"`{command.usage}`"
+                    if command.usage is not None else "",
                     "Description": command.description,
-                    "Sub-commands": "`" + command.name + " " + f"`, `{command.name} ".join(sorted([subcommand.name for subcommand in command.commands])) + "`",
+                    "Sub-commands": "`" + command.name + " " + f"`, `{command.name} ".join(
+                    sorted([subcommand.name for subcommand in command.commands])) + "`",
                     "Aliases": f"`{'`, `'.join(command.aliases)}`" if len(command.aliases) > 0 else ""
                 }
 
                 # add new subcommands
                 for subcommand in command.commands:
                     bot_commands[f"{command.name} {subcommand.name}"] = {
-                        "Usage": f"`{subcommand.usage}`" if subcommand.usage is not None else "",
+                        "Usage": f"`{subcommand.usage}`"
+                        if subcommand.usage is not None else "",
                         "Description": subcommand.description,
-                        "Aliases": f"`{command.name} {f'`, `{command.name} '.join(sorted(subcommand.aliases))}`" if len(subcommand.aliases) > 0 else ""
+                        "Aliases": f"`{command.name} {f'`, `{command.name} '.join(sorted(subcommand.aliases))}`"
+                        if len(subcommand.aliases) > 0 else ""
                     }
             except AttributeError:
                 pass

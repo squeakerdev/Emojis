@@ -6,6 +6,7 @@ from discord.ext.commands import has_permissions
 from bot import Colours
 from bot import CustomCommandError
 
+# Setting up the Database
 mgclient = mg.MongoClient("mongodb://localhost:27017")
 db = mgclient["Emojis"]
 prefix_list = db["prefixes"]

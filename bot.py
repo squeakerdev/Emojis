@@ -5,6 +5,7 @@ from discord.ext import commands
 import pymongo as mg
 import requests
 
+# Setting up Database
 mgclient = mg.MongoClient("mongodb://localhost:27017")
 db = mgclient["Emojis"]
 prefix_list = db["prefixes"]
@@ -23,6 +24,7 @@ class States:
     FAIL = '[\033[91m!\033[0m]'
 
 
+# Colors used in the Bot
 class Colours:
     base = discord.Color(7059952)
     success = discord.Color(3066993)
