@@ -6,12 +6,12 @@ from discord.ext.commands import has_permissions
 from bot import Colours
 from bot import CustomCommandError
 
-# Setting up the Database
-mgclient = mg.MongoClient("mongodb://localhost:27017")
-db = mgclient["Emojis"]
-prefix_list = db["prefixes"]
-settings = db["settings"]
-queues = db["verification_queues"]
+# Setting up Database
+MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
+DATABASE = MONGO_CLIENT["Emojis"]
+PREFIX_LIST = DATABASE["prefixes"]
+SETTINGS = DATABASE["settings"]
+APPROVAL_QUEUES = DATABASE["verification_queues"]
 
 
 def setup(bot):
@@ -38,7 +38,7 @@ class Settings(commands.Cog):
         :return: N/A
         """
 
-        prefix_list.update({"g": str(ctx.guild.id)}, {"$set": {"g": str(ctx.guild.id), "pr": prefix}}, upsert=True)
+        PREFIX_LIST.update({"g": str(ctx.guild.id)}, {"$set": {"g": str(ctx.guild.id), "pr": prefix}}, upsert=True)
 
         embed = discord.Embed(title=f"Prefix updated: {prefix}",
                               colour=Colours.success,
@@ -59,7 +59,7 @@ class Settings(commands.Cog):
         if ctx.invoked_subcommand is None:
             raise CustomCommandError(f"You need to enter a sub-command.\n\n"
                                      f"**Sub-commands:** `"
-                                     f"{'` `'.join(sorted([command.name for command in self.logging.commands]))}`")
+                                     f"{'` `'.join(sorted([command.name for command in self.queue.commands]))}`")
 
     @queue.command(name="enable",
                    description=f"Enable an emoji approval queue and set the channel that approval happens in.",
@@ -67,30 +67,11 @@ class Settings(commands.Cog):
                    aliases=["channel"],
                    pass_context=True)
     async def enable(self, ctx, approval_channel: discord.TextChannel):
-        queues.update_one({"g": str(ctx.message.guild.id)},
-                          {"$set": {"queue_channel": int(approval_channel.id)}},
-                          upsert=True)
+        APPROVAL_QUEUES.update_one({"g": str(ctx.message.guild.id)},
+                                   {"$set": {"queue_channel": int(approval_channel.id)}},
+                                   upsert=True)
 
         await ctx.send(embed=discord.Embed(colour=Colours.success,
                                            title="Update successful",
                                            description=f"You'll need to approve emojis that users upload in "
                                                        f"{approval_channel.mention}."))
-
-    @commands.group(name="logging",
-                    description=f"Configure logs for your server.",
-                    usage="[BOT_PREFIX]logging [sub-command] <arguments>",
-                    aliases=["log", "logs", "logsettings"],
-                    pass_context=True)
-    async def logging(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise CustomCommandError(f"You need to enter a sub-command.\n\n"
-                                     f"**Sub-commands:** `"
-                                     f"{'` `'.join(sorted([command.name for command in self.logging.commands]))}`")
-
-    @logging.command(name="channel",
-                     description="Set the logging channel.",
-                     usage="[BOT_PREFIX]logging channel [channel]",
-                     aliases=["ch", "#"],
-                     pass_context=True)
-    async def logging_channel(self, ctx, channel: discord.TextChannel):
-        settings.update({"g": str(ctx.message.guild.id)}, {"$set": {"lc": str(channel.id)}}, upsert=True)
