@@ -118,3 +118,72 @@ class Emoji(commands.Cog):
 
         # send
         await ctx.channel.send(embed=emoji_details_embed)
+        
+        
+        @commands.command(name="replace",
+                      description="Use emojis from other servers for free. **Emojis must be in the server that you"
+                                  " want to use emojis from.**",
+                      usage=">replace [:emoji from another server:]",
+                      aliases=["r", "nqn", "nitro", "nitroify", "free"],
+                      pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def convert(self, ctx, *msg):
+
+        o_msg = list(msg)  # original message
+        msg = list(msg)
+
+        count = 0
+
+        # find :unparsed emojis: in message
+        for word in msg:
+            word_results = re.search(r":(.*?):", word)
+            if word_results is None:
+                msg[count] = "-"
+
+            count += 1
+
+        count = 0
+        # try to replace emojis with real emojis
+        for word in msg:
+            if word != "-":  # non-emoji words are replaced with "-"
+                try:
+                    word = word[1:-1]  # omit colons
+                    emoji = await conv.convert(ctx=ctx, argument=word)
+                    msg[count] = emoji
+                    if emoji.animated:
+                        msg[count] = f"<a:{msg[count].name}:{msg[count].id}>"
+                    else:
+                        msg[count] = f"<:{msg[count].name}:{msg[count].id}>"
+                except:
+                    msg[count] = o_msg[count]
+            else:
+                msg[count] = o_msg[count]
+            count += 1
+
+        # store avatar
+        with open(f'./emojis/{ctx.message.author.id}.jpg', 'wb') as av:
+            av.write(requests.get(ctx.message.author.avatar_url).content)
+
+        # set up webhook - could be optimised by setting up the webhook on server join and using utils.get to find it
+        with open(f'./emojis/{ctx.message.author.id}.jpg', 'rb') as av:
+            try:
+                wh = await ctx.message.channel.create_webhook(name=ctx.message.author.display_name,
+                                                              avatar=av.read(),
+                                                              reason=f"Replacing emojis from {ctx.message.author}")
+            except:
+                raise CustomCommandError("Hey, I need an extra permission for that. Ask a mod to give my role (@Emojis)"
+                                         " the Manage Webhooks permission!")
+
+        # send on webhook
+        await wh.send(" ".join(msg))
+        try:
+            await ctx.message.delete()
+        except:
+            raise CustomCommandError("Hey, I need an extra permission for that. Ask a mod to give my role (@Emojis)"
+                                     " the Manage Messages permission!")
+
+        # del webhook
+        await wh.delete()
+
+        # del file
+        remove(f'./emojis/{ctx.message.author.id}.jpg')
