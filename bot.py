@@ -1,16 +1,21 @@
+import re
 import shutil
 from asyncio import sleep
+
 import discord
-from discord.ext import commands
 import pymongo as mg
 import requests
+from discord.ext import commands
 
 # Setting up Database
-mgclient = mg.MongoClient("mongodb://localhost:27017")
-db = mgclient["Emojis"]
-prefix_list = db["prefixes"]
-settings = db["settings"]
-queues = db["verification_queues"]
+MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
+DATABASE = MONGO_CLIENT["Emojis"]
+PREFIX_LIST = DATABASE["prefixes"]
+SETTINGS = DATABASE["settings"]
+APPROVAL_QUEUES = DATABASE["verification_queues"]
+
+# stuff for replacing emojis
+EMOJI_CONVERTER = commands.EmojiConverter()
 
 
 class CustomCommandError(Exception):
@@ -25,9 +30,76 @@ class Colours:
     warn = discord.Color(16707936)
 
 
+async def replace_unparsed_emojis(message: discord.Message):
+    """
+    Replace unparsed emojis in the user's message with emojis from other servers.
+
+    :param message: the message in question
+    :return: N/A
+    """
+
+    if not message.author.bot:
+        # split message into list of words
+        message_list = message.content.split(" ")
+
+        # the list that will contain the message with emojis replaced
+        message_with_replaced_emojis = []
+
+        # indicates whether anything needs to be sent on the webhook
+        emojis_found = False
+
+        # replace emojis in each word
+        for word in message_list:
+
+            # regex to find :emojis:
+            if re.search(r":(.*?):", word):
+
+                # get context from the message so that it can be used in EmojiConverter
+                ctx = await bot.get_context(message)
+
+                # convert the emoji
+                try:
+                    emoji = await EMOJI_CONVERTER.convert(ctx=ctx, argument=word.replace(":", ""))
+                    message_with_replaced_emojis.append(str(emoji))
+
+                    # indicate that emojis were replaced and the message needs to be sent on webhook
+                    emojis_found = True
+
+                # no emoji found
+                except commands.BadArgument:
+                    message_with_replaced_emojis.append(word)
+
+                # miscellaneous errors
+                except Exception as err:
+                    raise CustomCommandError(err)
+
+            # no unparsed emoji found; just add the word
+            else:
+                message_with_replaced_emojis.append(word)
+
+        # if emojis were replaced, send on webhook
+        if emojis_found:
+            channel_webhooks = await message.channel.webhooks()
+
+            # find the webhook created on server join
+            webhook = discord.utils.get(channel_webhooks, name="EmojisWH")
+
+            # no webhook found; make one instead
+            if not webhook:
+                webhook = await message.channel.create_webhook(name="EmojisWH")
+
+            # delete message
+            await message.delete()
+
+            # send replaced message on webhook
+            await webhook.send(" ".join(message_with_replaced_emojis),
+                               username=message.author.display_name,
+                               avatar_url=message.author.avatar_url)
+
+
 def get_prefix(client, message):
     """
-    Get the prefix for a specified server. 
+    Get the prefix for a specified server.
 
     :param client: the bot
     :param message: the message object that needs checking (comes from on_message)
@@ -35,12 +107,14 @@ def get_prefix(client, message):
     """
 
     # query database
-    prefix = prefix_list.find_one({"g": str(message.guild.id)}, {"_id": 0, "pr": 1})
+    prefix = PREFIX_LIST.find_one({"g": str(message.guild.id)}, {"_id": 0, "pr": 1})
 
     # return prefix
     try:
         return prefix["pr"]
     except KeyError:
+        return ">"
+    except TypeError:
         return ">"
 
 
@@ -109,6 +183,8 @@ async def on_message(message):
         await message.channel.send(f"{message.author.mention}, this server's prefix is `{prefix}`. Try `{prefix}help`"
                                    f" to get started.")
 
+    await replace_unparsed_emojis(message)
+
     await bot.process_commands(message)
 
 
@@ -126,8 +202,8 @@ async def on_guild_emojis_update(guild, before, after):
     # an emoji was added
     if len(after) > len(before):
         # check if the server has approval queue enabled
-        query = queues.find_one({"g": str(guild.id)},
-                                {"_id": 0,
+        query = APPROVAL_QUEUES.find_one({"g": str(guild.id)},
+                                         {"_id": 0,
                                  "queue_channel": 1,
                                  "queue": 1})
 
@@ -153,8 +229,8 @@ async def on_guild_emojis_update(guild, before, after):
                     if not guild_user.guild_permissions.administrator and guild_user.id != 749301838859337799:
 
                         # otherwise, update DB with new addition to emoji queue
-                        queues.update_one({"g": str(guild.id)},
-                                          {
+                        APPROVAL_QUEUES.update_one({"g": str(guild.id)},
+                                                   {
                                               "$push": {
                                                   "queue": {
                                                       str(new_emoji.id): {"url": url,
@@ -162,7 +238,7 @@ async def on_guild_emojis_update(guild, before, after):
                                                                           "name": name,
                                                                           "uploaded_by": str(uploaded_by.user)}
                                                   }}},
-                                          upsert=True)
+                                                   upsert=True)
 
                         # delete the emoji while we hold it hostage
                         await new_emoji.delete(reason="Queueing this emoji for approval.")
@@ -208,7 +284,6 @@ async def on_guild_emojis_update(guild, before, after):
                                             f"by {uploaded_by.user}."
                             ))
                         else:
-                            print("Here")
                             # update form with deny message
                             await approval_message.edit(embed=discord.Embed(
                                 colour=Colours.fail,
@@ -219,6 +294,37 @@ async def on_guild_emojis_update(guild, before, after):
         # emoji queue not enabled
         except KeyError:
             pass
+
+
+@bot.event
+async def on_guild_join(guild):
+    """
+    Send a message on guild join, then create a webhook to be used in the replace command.
+
+    :param guild: the guild that was joined
+    :return: N/A
+    """
+
+    # create the join embed
+    embed = discord.Embed(
+        title="Hi!",
+        description=f"Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
+                    "server's emojis. My prefix is `>` (but you can change it with `>prefix`!\n\n"
+                    "**By default, I replace unparsed :emojis: that I find in the chat, so that you can use emojis "
+                    "from other servers without Nitro. You can change this behaviour with `>replace`.**\n\n"
+                    f"**Commands:** `{'`, `'.join(sorted(list(filter(lambda c: c not in commands.Cog.get_commands(bot.cogs['Developer']), bot.commands))))}`",
+        colour=Colours.base
+    )
+
+    # send to the first channel the bot can type in
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            await channel.send(embed=embed)
+            break
+
+    # create a webhook in every text channel
+    for channel in guild.text_channels:
+        await channel.create_webhook(name="EmojisWH")
 
 
 @bot.event
