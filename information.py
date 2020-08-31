@@ -6,12 +6,14 @@ from bot import CustomCommandError
 from bot import Colours
 import pymongo as mg
 
-category_emojis = ["🔹", "🔹", "🔹", "🔹"]
+CATEGORY_EMOJIS = ["🔹", "🔹", "🔹", "🔹"]
 
 # Setting up Database
-mgclient = mg.MongoClient("mongodb://localhost:27017")
-db = mgclient["Emojis"]
-prefix_list = db["prefixes"]
+MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
+DATABASE = MONGO_CLIENT["Emojis"]
+PREFIX_LIST = DATABASE["prefixes"]
+SETTINGS = DATABASE["settings"]
+APPROVAL_QUEUES = DATABASE["verification_queues"]
 
 
 def setup(bot):
@@ -53,7 +55,7 @@ class Information(commands.Cog):
 
         # doesnt exist
         else:
-            raise CustomCommandError(f"Couldn't find the command \"{help_category}\". You can view a list of commands with {ctx.prefix}help.")
+            raise CustomCommandError(f"Couldn't find the command \"{help_category}\". You can view a list of commands with `{ctx.prefix}help`.")
 
         # return the help embed
         return help_embed
@@ -78,14 +80,14 @@ class Information(commands.Cog):
             for category in self.bot.cogs:
                 if category.lower() != "developer":
                     help_embed_categories.add_field(name="\u200b",
-                                                    value=f"**{category_emojis[count]} {category}**\n"
+                                                    value=f"**{CATEGORY_EMOJIS[count]} {category}**\n"
                                                           f"`{ctx.prefix}help {category.lower()}`\n",
                                                     inline=True)
                     count += 1
                 else:
                     if ctx.message.author.id == 554275447710548018:
                         help_embed_categories.add_field(name="\u200b",
-                                                        value=f"**{category_emojis[count]} {category}**\n"
+                                                        value=f"**{CATEGORY_EMOJIS[count]} {category}**\n"
                                                               f"`{ctx.prefix}help {category.lower()}`\n",
                                                         inline=True)
                         count += 1
