@@ -24,7 +24,7 @@ class CustomCommandError(Exception):
 
 # Colors used in the Bot
 class Colours:
-    base = discord.Color(7059952)
+    base = discord.Color(16562199)
     success = discord.Color(3066993)
     fail = discord.Color(15742004)
     warn = discord.Color(16707936)
@@ -38,63 +38,71 @@ async def replace_unparsed_emojis(message: discord.Message):
     :return: N/A
     """
 
-    if not message.author.bot:
-        # split message into list of words
-        message_list = message.content.split(" ")
+    query = SETTINGS.find_one({"g": str(message.guild.id)},
+                              {"_id": 0,
+                               "replace_emojis": 1})
 
-        # the list that will contain the message with emojis replaced
-        message_with_replaced_emojis = []
+    if not query or query["replace_emojis"] is True:
 
-        # indicates whether anything needs to be sent on the webhook
-        emojis_found = False
+        # messages from bots aren't replaced
+        if not message.author.bot:
 
-        # replace emojis in each word
-        for word in message_list:
+            # split message into list of words
+            message_list = message.content.split(" ")
 
-            # regex to find :emojis:
-            if re.search(r":(.*?):", word):
+            # the list that will contain the message with emojis replaced
+            message_with_replaced_emojis = []
 
-                # get context from the message so that it can be used in EmojiConverter
-                ctx = await bot.get_context(message)
+            # indicates whether anything needs to be sent on the webhook
+            emojis_found = False
 
-                # convert the emoji
-                try:
-                    emoji = await EMOJI_CONVERTER.convert(ctx=ctx, argument=word.replace(":", ""))
-                    message_with_replaced_emojis.append(str(emoji))
+            # replace emojis in each word
+            for word in message_list:
 
-                    # indicate that emojis were replaced and the message needs to be sent on webhook
-                    emojis_found = True
+                # regex to find :emojis:
+                if re.search(r":(.*?):", word):
 
-                # no emoji found
-                except commands.BadArgument:
+                    # get context from the message so that it can be used in EmojiConverter
+                    ctx = await bot.get_context(message)
+
+                    # convert the emoji
+                    try:
+                        emoji = await EMOJI_CONVERTER.convert(ctx=ctx, argument=word.replace(":", ""))
+                        message_with_replaced_emojis.append(str(emoji))
+
+                        # indicate that emojis were replaced and the message needs to be sent on webhook
+                        emojis_found = True
+
+                    # no emoji found
+                    except commands.BadArgument:
+                        message_with_replaced_emojis.append(word)
+
+                    # miscellaneous errors
+                    except Exception as err:
+                        raise CustomCommandError(err)
+
+                # no unparsed emoji found; just add the word
+                else:
                     message_with_replaced_emojis.append(word)
 
-                # miscellaneous errors
-                except Exception as err:
-                    raise CustomCommandError(err)
+            # if emojis were replaced, send on webhook
+            if emojis_found:
+                channel_webhooks = await message.channel.webhooks()
 
-            # no unparsed emoji found; just add the word
-            else:
-                message_with_replaced_emojis.append(word)
+                # find the webhook created on server join
+                webhook = discord.utils.get(channel_webhooks, name="Emojis")
 
-        # if emojis were replaced, send on webhook
-        if emojis_found:
-            channel_webhooks = await message.channel.webhooks()
+                # no webhook found; make one instead
+                if not webhook:
+                    webhook = await message.channel.create_webhook(name="Emojis")
 
-            # find the webhook created on server join
-            webhook = discord.utils.get(channel_webhooks, name="EmojisWH")
+                # delete message
+                await message.delete()
 
-            # no webhook found; make one instead
-            if not webhook:
-                webhook = await message.channel.create_webhook(name="EmojisWH")
-
-            # delete message
-            await message.delete()
-
-            # send replaced message on webhook
-            await webhook.send(" ".join(message_with_replaced_emojis),
-                               username=message.author.display_name,
-                               avatar_url=message.author.avatar_url)
+                # send replaced message on webhook
+                await webhook.send(" ".join(message_with_replaced_emojis),
+                                   username=message.author.display_name,
+                                   avatar_url=message.author.avatar_url)
 
 
 def get_prefix(client, message):
@@ -204,8 +212,8 @@ async def on_guild_emojis_update(guild, before, after):
         # check if the server has approval queue enabled
         query = APPROVAL_QUEUES.find_one({"g": str(guild.id)},
                                          {"_id": 0,
-                                 "queue_channel": 1,
-                                 "queue": 1})
+                                          "queue_channel": 1,
+                                          "queue": 1})
 
         try:
             if query["queue_channel"]:
@@ -311,7 +319,7 @@ async def on_guild_join(guild):
         description=f"Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
                     "server's emojis. My prefix is `>` (but you can change it with `>prefix`!\n\n"
                     "**By default, I replace unparsed :emojis: that I find in the chat, so that you can use emojis "
-                    "from other servers without Nitro. You can change this behaviour with `>replace`.**\n\n"
+                    "from other servers without Nitro. You can change this behaviour with `>replace disable`.**\n\n"
                     f"**Commands:** `{'`, `'.join(sorted(list(filter(lambda c: c not in commands.Cog.get_commands(bot.cogs['Developer']), bot.commands))))}`",
         colour=Colours.base
     )
@@ -324,7 +332,7 @@ async def on_guild_join(guild):
 
     # create a webhook in every text channel
     for channel in guild.text_channels:
-        await channel.create_webhook(name="EmojisWH")
+        await channel.create_webhook(name="Emojis")
 
 
 @bot.event
@@ -361,8 +369,7 @@ async def send_error(ctx, err, extra_info=None, full_error=None):
     error_embed.description = err
 
     if extra_info and isinstance(full_error, commands.CommandInvokeError) is False:
-        error_embed.description = f"{err}\n\n**{extra_info['name']}:** `{extra_info['value']}`".replace("[BOT_PREFIX]",
-                                                                                                        ctx.prefix)
+        error_embed.description = f"{err}\n\n**{extra_info['name']}:** `{extra_info['value']}`".replace("[BOT_PREFIX]", ctx.prefix)
 
     await ctx.send(embed=error_embed)
 
@@ -373,5 +380,5 @@ if __name__ == "__main__":
     for extension in startup_extensions:
         bot.load_extension(extension)
 
-    with open("token.txt", "r") as token:
+    with open("./data/token.txt", "r") as token:
         bot.run(token.readline())

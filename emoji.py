@@ -1,3 +1,4 @@
+import re
 from random import choice
 
 import discord
@@ -7,6 +8,7 @@ from discord.ext.commands import has_permissions
 
 from bot import Colours, install_emoji
 from bot import CustomCommandError
+from bot import EMOJI_CONVERTER
 
 # Setting up Database
 MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
@@ -14,6 +16,8 @@ DATABASE = MONGO_CLIENT["Emojis"]
 PREFIX_LIST = DATABASE["prefixes"]
 SETTINGS = DATABASE["settings"]
 APPROVAL_QUEUES = DATABASE["verification_queues"]
+
+PARTIAL_EMOJI_CONVERTER = commands.PartialEmojiConverter()
 
 
 def setup(bot):
@@ -100,7 +104,7 @@ class Emoji(commands.Cog):
 
         # required to get user who made emoji
         try:
-            emoji = await ctx.guild.fetch_emoji(emoji.id)
+            emoji = await EMOJI_CONVERTER.convert(ctx=ctx, argument=emoji.id)
         except Exception:
             raise CustomCommandError(f"I can't find that emoji. Make sure it's from **this** server "
                                      f"({ctx.guild.name}).")
@@ -119,3 +123,81 @@ class Emoji(commands.Cog):
 
         # send
         await ctx.channel.send(embed=emoji_details_embed)
+
+    @commands.command(name="link",
+                      description="Get the link to an emoji, or a list of emojis.",
+                      usage=">link [emoji] <emoji> <emoji> ...",
+                      aliases=["getlink"],
+                      pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def link(self, ctx, emojis: commands.Greedy[discord.Emoji]):
+        """
+        Get the URL for the image of an emoji, or a list of emojis.
+
+        :param ctx: context
+        :param emojis: the list of emojis
+        :return:
+        """
+        if len(emojis) == 0:
+            raise CustomCommandError("You need to input at least one emoji.")
+
+        embed = discord.Embed(
+            colour=Colours.success,
+            description=""
+        )
+
+        for emoji in emojis:
+            embed.description = str(embed.description) + str(emoji.url) + "\n"
+
+        embed.set_thumbnail(url=emojis[0].url)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(name="upload",
+                      description="Upload an emoji from an image, URL, or directly through Discord.",
+                      usage=">upload [name for emoji] [URL OR image attachment]",
+                      aliases=["fromurl", "u", "url"],
+                      pass_context=True)
+    @has_permissions(manage_emojis=True)
+    async def emoji_from_url(self, ctx, emoji_name, image=None):
+        """
+        Upload an emoji from a URL or image.
+
+        :param ctx: context
+        :param emoji_name: name for the emoji
+        :param image: image for the emoji
+        :return: N/A
+        """
+
+        # fix weird argument ordering
+        if image is None:
+            if len(ctx.message.attachments) == 0:
+                image = emoji_name
+                emoji_name = None
+
+        image_url = None
+
+        # user added some data (e.g. an image URL or emoji)
+        if image:
+
+            # try to convert the data to an emoji and get its URL
+            try:
+                image = await PARTIAL_EMOJI_CONVERTER.convert(ctx=ctx, argument=image)
+
+                # use emoji's existing name
+                if emoji_name is None:
+                    emoji_name = image.name
+
+                # set url to emoji url
+                image_url = image.url
+
+            # conversion failed; use argument as-is (probably a URL)
+            except commands.BadArgument:
+                image_url = image
+
+        # no data provided, but the user uploaded a file
+        elif len(ctx.message.attachments) > 0:
+            image_url = ctx.message.attachments[0].url
+
+        # install emoji
+        await install_emoji(ctx, {"title": emoji_name, "image": image_url}, success_message="Emoji uploaded")
