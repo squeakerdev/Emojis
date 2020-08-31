@@ -188,7 +188,7 @@ async def on_message(message):
 
     if message.content.startswith("<@!749301838859337799>"):
         prefix = get_prefix(bot, message)
-        await message.channel.send(f"{message.author.mention}, this server's prefix is `{prefix}`. Try `{prefix}help`"
+        await message.channel.send(f"{message.author.mention}, Der Präfix für diesen Server ist `{prefix}`. Versuch mal `{prefix}help`"
                                    f" to get started.")
 
     await replace_unparsed_emojis(message)
