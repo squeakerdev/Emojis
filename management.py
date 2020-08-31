@@ -8,12 +8,12 @@ from discord.ext.commands import has_permissions
 from bot import Colours
 from bot import CustomCommandError
 
-# Setting up the Database
-mgclient = mg.MongoClient("mongodb://localhost:27017")
-db = mgclient["Emojis"]
-prefix_list = db["prefixes"]
-settings = db["settings"]
-queues = db["verification_queues"]
+# Setting up Database
+MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
+DATABASE = MONGO_CLIENT["Emojis"]
+PREFIX_LIST = DATABASE["prefixes"]
+SETTINGS = DATABASE["settings"]
+APPROVAL_QUEUES = DATABASE["verification_queues"]
 
 
 def setup(bot):
