@@ -6,7 +6,7 @@ from bot import CustomCommandError
 from bot import Colours
 import pymongo as mg
 
-CATEGORY_EMOJIS = ["🔹", "🔹", "🔹", "🔹"]
+CATEGORY_EMOJIS = ["🔸", "🔸", "🔸", "🔸"]
 
 # Setting up Database
 MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
@@ -75,7 +75,7 @@ class Information(commands.Cog):
             # help_embed_categories.set_footer(text=help_message, icon_url=self.bot.user.avatar_url)
             count = 0
 
-            help_embed_categories.description = "Emojis sample text"
+            help_embed_categories.description = "Easily manage your server's emojis."
 
             for category in self.bot.cogs:
                 if category.lower() != "developer":
@@ -103,6 +103,38 @@ class Information(commands.Cog):
             help_embed = await self.create_help_embed(ctx, help_category)
             if help_embed is not None:
                 await ctx.channel.send(embed=help_embed)
+
+    @commands.command(name="information",
+                      description="Alias for `>help information`.",
+                      usage="[BOT_PREFIX]information",
+                      aliases=[],
+                      pass_context=True)
+    async def information(self, ctx):
+        await self._help(ctx, help_category="information")
+
+    @commands.command(name="settings",
+                      description="Alias for `>help settings`.",
+                      usage="[BOT_PREFIX]settings",
+                      aliases=["config", "configuration", "configure"],
+                      pass_context=True)
+    async def settings(self, ctx):
+        await self._help(ctx, help_category="settings")
+
+    @commands.command(name="emoji",
+                      description="Alias for `>help emoji`.",
+                      usage="[BOT_PREFIX]emoji",
+                      aliases=["emojis"],
+                      pass_context=True)
+    async def emoji(self, ctx):
+        await self._help(ctx, help_category="emoji")
+
+    @commands.command(name="management",
+                      description="Alias for `>help management`.",
+                      usage="[BOT_PREFIX]management",
+                      aliases=["mgmt"],
+                      pass_context=True)
+    async def management(self, ctx):
+        await self._help(ctx, help_category="management")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
