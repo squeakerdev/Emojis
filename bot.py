@@ -113,9 +113,13 @@ def get_prefix(client, message):
     :param message: the message object that needs checking (comes from on_message)
     :return: the server's custom prefix (str)
     """
+    try:
+        guild = message.guild
+    except AttributeError:
+        guild = message
 
     # query database
-    prefix = PREFIX_LIST.find_one({"g": str(message.guild.id)}, {"_id": 0, "pr": 1})
+    prefix = PREFIX_LIST.find_one({"g": str(guild.id)}, {"_id": 0, "pr": 1})
 
     # return prefix
     try:
@@ -317,10 +321,10 @@ async def on_guild_join(guild):
     embed = discord.Embed(
         title="Hi!",
         description=f"Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
-                    "server's emojis. My prefix is `>` (but you can change it with `>prefix`!\n\n"
+                    "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
                     "**By default, I replace unparsed :emojis: that I find in the chat, so that you can use emojis "
                     "from other servers without Nitro. You can change this behaviour with `>replace disable`.**\n\n"
-                    f"**Commands:** `{'`, `'.join(sorted(list(filter(lambda c: c not in commands.Cog.get_commands(bot.cogs['Developer']), bot.commands))))}`",
+                    f"**Commands:** `{'`, `'.join(sorted([c.name for c in bot.commands]))}`",
         colour=Colours.base
     )
 
@@ -333,6 +337,11 @@ async def on_guild_join(guild):
     # create a webhook in every text channel
     for channel in guild.text_channels:
         await channel.create_webhook(name="Emojis")
+
+    prefix = get_prefix(bot, guild)
+
+    bot_user = await guild.fetch_member(749301838859337799)
+    await bot_user.edit(nick=f"[{prefix}] Emojis")
 
 
 @bot.event
