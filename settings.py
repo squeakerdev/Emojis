@@ -63,7 +63,7 @@ class Settings(commands.Cog):
 
     @queue.command(name="enable",
                    description=f"Enable an emoji approval queue and set the channel that approval happens in.",
-                   usage="[BOT_PREFIX]queue [sub-command] <arguments>",
+                   usage="[BOT_PREFIX]queue enable [approval channel]",
                    aliases=["channel", "#"],
                    pass_context=True)
     @has_permissions(manage_emojis=True, manage_guild=True)
@@ -79,7 +79,7 @@ class Settings(commands.Cog):
 
     @queue.command(name="disable",
                    description=f"Disable the emoji approval queue.",
-                   usage="[BOT_PREFIX]queue [sub-command] <arguments>",
+                   usage="[BOT_PREFIX]queue disable",
                    aliases=["off"],
                    pass_context=True)
     @has_permissions(manage_emojis=True, manage_guild=True)
@@ -91,4 +91,45 @@ class Settings(commands.Cog):
         await ctx.send(embed=discord.Embed(colour=Colours.success,
                                            title="Update successful",
                                            description=f"Emojis uploaded by users no longer need approval."))
+
+    @commands.group(name="replace",
+                    description=f"Configure the automatic replacement of emojis in this server.",
+                    usage="[BOT_PREFIX]replace [sub-command] <arguments>",
+                    aliases=["nqn", "nitro"],
+                    pass_context=True)
+    async def replace(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise CustomCommandError(f"You need to enter a sub-command.\n\n"
+                                     f"**Sub-commands:** `"
+                                     f"{'` `'.join(sorted([command.name for command in self.replace.commands]))}`")
+
+    @replace.command(name="enable",
+                     description=f"Enable automatic replacement of emojis in this server.",
+                     usage="[BOT_PREFIX]replace enable",
+                     aliases=["on"],
+                     pass_context=True)
+    @has_permissions(manage_emojis=True, manage_guild=True)
+    async def enable_replace(self, ctx):
+        SETTINGS.update_one({"g": str(ctx.message.guild.id)},
+                            {"$set": {"replace_emojis": True}},
+                            upsert=True)
+
+        await ctx.send(embed=discord.Embed(colour=Colours.success,
+                                           title="Update successful",
+                                           description=f"You can now use emojis from any server I'm in."))
+
+    @replace.command(name="disable",
+                     description=f"Disable automatic replacement of emojis in this server.",
+                     usage="[BOT_PREFIX]replace disable",
+                     aliases=["off"],
+                     pass_context=True)
+    @has_permissions(manage_emojis=True, manage_guild=True)
+    async def disable_replace(self, ctx):
+        SETTINGS.update_one({"g": str(ctx.message.guild.id)},
+                            {"$set": {"replace_emojis": False}},
+                            upsert=True)
+
+        await ctx.send(embed=discord.Embed(colour=Colours.success,
+                                           title="Update successful",
+                                           description=f"I won't automatically look for unparsed emojis anymore."))
 
