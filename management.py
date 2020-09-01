@@ -153,17 +153,15 @@ class Management(commands.Cog):
         if not result:
             raise CustomCommandError("Deletion cancelled.")
 
-        # show bot as typing
-        async with ctx.message.channel.typing():
-            # delete the emojis
-            for emoji in emojis_to_delete:
+        # delete the emojis
+        for emoji in emojis_to_delete:
 
-                # emoji is from another guild
-                if emoji.guild != ctx.message.guild:
-                    raise CustomCommandError(f"I can't find the emoji {emoji} in this server.")
+            # emoji is from another guild
+            if emoji.guild != ctx.message.guild:
+                raise CustomCommandError(f"I can't find the emoji {emoji} in this server.")
 
-                # delete
-                await emoji.delete(reason=f"Deleted by {ctx.message.author.display_name}")
+            # delete
+            await emoji.delete(reason=f"Deleted by {ctx.message.author.display_name}")
 
         # only one emoji deleted
         if len(emojis_to_delete) == 1:

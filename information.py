@@ -60,6 +60,24 @@ class Information(commands.Cog):
         # return the help embed
         return help_embed
 
+    @commands.command(name="invite",
+                      description="Invite Emojis to your server.",
+                      usage="[BOT_PREFIX]invite",
+                      aliases=["inv"],
+                      pass_context=True)
+    async def invite(self, ctx):
+        """
+        Generate an invite link.
+
+        :param ctx: context
+        :return: N/A
+        """
+        await ctx.send(embed=discord.Embed(
+            colour=Colours.base,
+            description=f"**[Click here](https://discord.com/api/oauth2/authorize?client_id=749301838859337799&"
+                        f"permissions=1946545248&scope=bot)** to invite me to your server."
+        ))
+
     @commands.command(name="help",
                       description="Why are you looking at the help for the help command? You're weird.",
                       usage="[BOT_PREFIX]help`, `[BOT_PREFIX]help [category]`, or `[BOT_PREFIX]help [command]",
@@ -67,7 +85,11 @@ class Information(commands.Cog):
                       pass_context=True)
     async def _help(self, ctx, *, help_category=None):
         """
-        Send the help message specified in on_ready.
+        Generate and send a help embed.
+
+        :param ctx: context
+        :param help_category: the search term (i.e. command/category to get help on)
+        :return: N/A
         """
 
         if help_category is None:
@@ -103,6 +125,33 @@ class Information(commands.Cog):
             help_embed = await self.create_help_embed(ctx, help_category)
             if help_embed is not None:
                 await ctx.channel.send(embed=help_embed)
+
+    @commands.command(name="stats",
+                      description="Get some basic stats about what Emoji Thief is up to.",
+                      usage="[BOT_PREFIX]stats",
+                      aliases=["statistics", "st"],
+                      pass_context=True)
+    async def stats(self, ctx):
+        """
+        Display some simple stats about the bot's status.
+
+        :param ctx: context
+        :return: N/A
+        """
+
+        stats_embed = discord.Embed(
+            title="Stats",
+            colour=Colours.base
+        )
+
+        stats_embed.add_field(name="Members",
+                              value=f"{sum(guild.member_count for guild in self.bot.guilds)}")
+        stats_embed.add_field(name="Servers",
+                              value=f"{len(self.bot.guilds)}")
+        stats_embed.add_field(name="Emojis",
+                              value=f"{len(self.bot.emojis)}")
+
+        await ctx.channel.send(embed=stats_embed)
 
     @commands.command(name="information",
                       description="Alias for `>help information`.",

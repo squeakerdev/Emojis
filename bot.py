@@ -30,6 +30,7 @@ class Colours:
     warn = discord.Color(16707936)
 
 
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def replace_unparsed_emojis(message: discord.Message):
     """
     Replace unparsed emojis in the user's message with emojis from other servers.
@@ -43,9 +44,9 @@ async def replace_unparsed_emojis(message: discord.Message):
                                "replace_emojis": 1})
 
     if not query or query["replace_emojis"] is True:
-
         # messages from bots aren't replaced
-        if not message.author.bot:
+
+        if not message.author.bot and not str(message.author).endswith("#0000"):
 
             # split message into list of words
             message_list = message.content.split(" ")
@@ -98,6 +99,8 @@ async def replace_unparsed_emojis(message: discord.Message):
 
                 # delete message
                 await message.delete()
+
+                print("Processing message by", str(message.author), f"({message.content})")
 
                 # send replaced message on webhook
                 await webhook.send(" ".join(message_with_replaced_emojis),
@@ -189,6 +192,9 @@ async def on_message(message):
     """
     Check if the user pinged the bot; if they did, tell them the bot's prefix.
     """
+
+    if message.author.id == 625126464383090698:
+        print("Message from inertia:", message.content)
 
     if message.content.startswith("<@!749301838859337799>"):
         prefix = get_prefix(bot, message)
@@ -323,7 +329,8 @@ async def on_guild_join(guild):
         description=f"Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
                     "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
                     "**By default, I replace unparsed :emojis: that I find in the chat, so that you can use emojis "
-                    "from other servers without Nitro. You can change this behaviour with `>replace disable`.**\n\n"
+                    "from other servers without Nitro.** If you have a similar bot, like NQN or Animated Emojis, "
+                    "they might conflict. You can change this behaviour with `>replace off`.\n\n"
                     f"**Commands:** `{'`, `'.join(sorted([c.name for c in bot.commands]))}`",
         colour=Colours.base
     )
