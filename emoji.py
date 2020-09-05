@@ -36,7 +36,6 @@ class Emoji(commands.Cog):
                       aliases=["j", "big", "size", "sizeup"],
                       pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    @has_permissions(manage_emojis=True)
     async def jumbo(self, ctx, emojis: commands.Greedy[discord.PartialEmoji]):
         """
         Return an emoji's full-size image.
