@@ -104,7 +104,7 @@ class Emoji(commands.Cog):
 
         # required to get user who made emoji
         try:
-            emoji = await EMOJI_CONVERTER.convert(ctx=ctx, argument=emoji.id)
+            emoji = await ctx.guild.fetch_emoji(emoji.id)
         except Exception:
             raise CustomCommandError(f"I can't find that emoji. Make sure it's from **this** server "
                                      f"({ctx.guild.name}).")
