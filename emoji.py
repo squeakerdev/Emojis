@@ -92,7 +92,7 @@ class Emoji(commands.Cog):
                       aliases=["?", "details", "d"],
                       pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def get_emoji_info(self, ctx, emoji: discord.Emoji):
+    async def get_emoji_info(self, ctx, emoji: discord.PartialEmoji):
         """
         Get information on an emoji from the current server.
 
@@ -129,7 +129,7 @@ class Emoji(commands.Cog):
                       aliases=["getlink"],
                       pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def link(self, ctx, emojis: commands.Greedy[discord.Emoji]):
+    async def link(self, ctx, emojis: commands.Greedy[discord.PartialEmoji]):
         """
         Get the URL for the image of an emoji, or a list of emojis.
 
@@ -138,7 +138,7 @@ class Emoji(commands.Cog):
         :return:
         """
         if len(emojis) == 0:
-            raise CustomCommandError("You need to input at least one emoji.")
+            raise CustomCommandError("You need to input at least one emoji .")
 
         embed = discord.Embed(
             colour=Colours.success,
