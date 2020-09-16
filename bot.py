@@ -17,10 +17,6 @@ APPROVAL_QUEUES = DATABASE["verification_queues"]
 # stuff for replacing emojis
 EMOJI_CONVERTER = commands.EmojiConverter()
 
-# tokens for updating stats on bot listings
-BOTS_GG_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGkiOnRydWUsImlkIjoiNTU0Mjc1NDQ3NzEwNTQ4MDE4IiwiaWF0IjoxNTk" \
-                "5MzI4NDcwfQ.WASrdwnFrz0EvxqqgytFIJtlcE9GDO57Wlw-4j7W3rQ"
-
 
 class CustomCommandError(Exception):
     pass
