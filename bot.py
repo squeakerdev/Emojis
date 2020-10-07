@@ -17,6 +17,10 @@ APPROVAL_QUEUES = DATABASE["verification_queues"]
 # stuff for replacing emojis
 EMOJI_CONVERTER = commands.EmojiConverter()
 
+# tokens for updating stats on bot listings
+with open("data/botsggtoken.txt", "r") as bgg:
+    BOTS_GG_TOKEN = bgg.readline()
+
 
 class CustomCommandError(Exception):
     pass

@@ -1,6 +1,9 @@
 import re
+from asyncio import sleep
+from os import remove
 from random import choice
 
+from PIL import Image
 import discord
 import pymongo as mg
 from discord.ext import commands
@@ -24,11 +27,50 @@ def setup(bot):
     bot.add_cog(Emoji(bot))
 
 
+async def combine_images(base_image, new_image):
+    return Image.alpha_composite(base_image, new_image)
+
+
 class Emoji(commands.Cog):
     __slots__ = ["bot"]
 
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(name="craft",
+                      description="Create an emoji from parts.",
+                      usage=">craft [number 1-33] [number 1-59] [number 1-66]",
+                      aliases=["make", "gen"],
+                      pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def craft(self, ctx, base, eyes, mouth, brows=None, extras=None):
+        try:
+            # convert arguments to files
+            base = Image.open(f"./data/emoji_crafting/bases/{base}.png").convert("RGBA").resize((100, 100))
+            eyes = Image.open(f"./data/emoji_crafting/eyes/{eyes}.png").convert("RGBA").resize((100, 100))
+            mouth = Image.open(f"./data/emoji_crafting/mouths/{mouth}.png").convert("RGBA").resize((100, 100))
+
+            # combine images
+            emoji = await combine_images(base, mouth)
+            emoji = await combine_images(emoji, eyes)
+
+            # save image
+            emoji.save(f"./data/emoji_crafting/creations/{ctx.message.id}.png")
+
+            # convert to discord file
+            with open(f"./data/emoji_crafting/creations/{ctx.message.id}.png", "rb") as file:
+                to_send = discord.File(file)
+
+        # one of the numbers is out of range
+        except FileNotFoundError:
+            raise CustomCommandError("One of your options is out of the valid range.\n\n"
+                                     "**Required values:**\n"
+                                     "**Base:** 1-33\n"
+                                     "**Eyes:** 1-59\n"
+                                     "**Mouth:** 1-66")
+
+        # send file
+        await ctx.send(file=to_send)
 
     @commands.command(name="jumbo",
                       description="View an emoji in full size.",

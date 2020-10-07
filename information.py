@@ -40,10 +40,11 @@ class Information(commands.Cog):
             if help_category.lower() == "developer" and ctx.message.author.id != 554275447710548018:
                 return
             else:
+                random_cmd = choice(commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])).name
                 help_embed.add_field(name="Commands",
-                                     value=f"`{'` `'.join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
-                                           f"Type `{ctx.prefix}help [command]` (e.g. `{ctx.prefix}help {choice(commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])).name}`)"
-                                           f" for specific help on a command.")
+                                     value=f"`>{'` `>'.join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
+                                           f"🔸 The correct syntax is `>[command]` (e.g. `>{random_cmd}`), NOT `>{help_category.lower()} [command]`.\n"
+                                           f"🔸 You can get information on a command with `>help [command]`.")
 
         # not a category
         elif help_category.lower() in bot_commands.keys():
