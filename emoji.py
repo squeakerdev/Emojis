@@ -3,13 +3,14 @@ from asyncio import sleep
 from os import remove
 from random import choice
 
+import dbl
 from PIL import Image
 import discord
 import pymongo as mg
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 
-from bot import Colours, install_emoji
+from bot import Colours, install_emoji, has_voted
 from bot import CustomCommandError
 from bot import EMOJI_CONVERTER
 
@@ -195,10 +196,11 @@ class Emoji(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="upload",
-                      description="Upload an emoji from an image, URL, or directly through Discord.",
+                      description="Upload an emoji from an image, URL, or from another server.",
                       usage=">upload [name for emoji] [URL OR image attachment]",
-                      aliases=["fromurl", "u", "url"],
+                      aliases=["steal", "fromurl", "u", "url"],
                       pass_context=True)
+    @commands.check(has_voted)
     @has_permissions(manage_emojis=True)
     async def emoji_from_url(self, ctx, emoji_name, image=None):
         """

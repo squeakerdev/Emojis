@@ -1,7 +1,7 @@
 import re
 import shutil
 from asyncio import sleep
-
+import dbl
 import discord
 import pymongo as mg
 import requests
@@ -434,6 +434,17 @@ async def on_ready():
             print("Failed to change presence:", err)
 
 
+@bot.check
+async def has_voted(ctx):
+    voted = await dbl_post.get_user_vote(ctx.message.author.id)
+
+    if voted:
+        return True
+    else:
+        raise CustomCommandError("**[https://top.gg/bot/749301838859337799/vote](Please vote to use that command.)** "
+                                 "Your vote will take a few minutes to register.")
+
+
 async def send_error(ctx, err, extra_info=None, full_error=None):
     """
     Send an error message to a specified channel.
@@ -462,5 +473,6 @@ if __name__ == "__main__":
     for extension in startup_extensions:
         bot.load_extension(extension)
 
-    with open("./data/token.txt", "r") as token:
+    with open("./data/token.txt", "r") as token, open("./data/botsggtoken.txt") as bots_gg_token:
+        dbl_post = dbl.DBLClient(bot, bots_gg_token.readline(), autopost=True)
         bot.run(token.readline())

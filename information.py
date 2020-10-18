@@ -42,9 +42,9 @@ class Information(commands.Cog):
             else:
                 random_cmd = choice(commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])).name
                 help_embed.add_field(name="Commands",
-                                     value=f"`>{'` `>'.join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
-                                           f"🔸 The correct syntax is `>[command]` (e.g. `>{random_cmd}`), NOT `>{help_category.lower()} [command]`.\n"
-                                           f"🔸 You can get information on a command with `>help [command]`.")
+                                     value=f"`{ctx.prefix}{'` `' + ctx.prefix + ''.join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
+                                           f"🔸 The correct syntax is `{ctx.prefix}[command]` (e.g. `{ctx.prefix}{random_cmd}`), NOT `{ctx.prefix}{help_category.lower()} [command]`.\n"
+                                           f"🔸 You can get information on a command with `{ctx.prefix}help [command]`.")
 
         # not a category
         elif help_category.lower() in bot_commands.keys():
