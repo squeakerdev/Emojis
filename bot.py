@@ -14,12 +14,10 @@ PREFIX_LIST = DATABASE["prefixes"]
 SETTINGS = DATABASE["settings"]
 APPROVAL_QUEUES = DATABASE["verification_queues"]
 
+BOTS_GG_TOKEN = ""
+
 # stuff for replacing emojis
 EMOJI_CONVERTER = commands.EmojiConverter()
-
-# tokens for updating stats on bot listings
-with open("data/botsggtoken.txt", "r") as bgg:
-    BOTS_GG_TOKEN = bgg.readline()
 
 
 class CustomCommandError(Exception):
@@ -28,7 +26,7 @@ class CustomCommandError(Exception):
 
 # Colors used in the Bot
 class Colours:
-    base = discord.Color(16562199)
+    base = discord.Color(16027908)  # normal: 16562199
     success = discord.Color(3066993)
     fail = discord.Color(15742004)
     warn = discord.Color(16707936)
@@ -174,63 +172,18 @@ async def install_emoji(ctx, emoji_json, success_message: str = None, uploaded_b
         else:
             new_emoji = await ctx.message.guild.create_custom_emoji(name=emoji_json['title'], image=image.read())
 
-            # check if the server has approval queue enabled
-            query = APPROVAL_QUEUES.find_one({"g": str(ctx.guild.id)},
-                                             {"_id": 0,
-                                              "queue_channel": 1,
-                                              "queue": 1})
+            # server doesn't have queue enabled; post the success message
+            if success_message:
+                embed = discord.Embed(
+                    title=success_message,
+                    colour=Colours.success,
+                    description=f"`:{emoji_json['title']}:`"
+                )
 
-            # add the emoji to the approval queue
-            try:
-                if query["queue_channel"]:
+                embed.set_thumbnail(url=emoji_json["image"])
 
-                    # admins bypass the queue
-                    if not ctx.message.author.guild_permissions.administrator:
-
-                        # send a warning message
-                        embed = discord.Embed(
-                            colour=Colours.warn,
-                            description=f"<:warningsmall:744570500919066706> **Hold your horses!** This server has an "
-                                        f"emoji approval queue active. I'll upload your emoji once a moderator has"
-                                        f" approved that it's a good emoji."
-                        )
-
-                        # send
-                        await ctx.message.channel.send(embed=embed)
-
-                        # add to queue
-                        await add_to_emoji_queue(ctx.guild, [new_emoji], user=ctx.message.author)
-
-                    # user is admin; bypass queue and post success msg
-                    else:
-                        # post the success message
-                        if success_message:
-                            embed = discord.Embed(
-                                title=success_message,
-                                colour=Colours.success,
-                                description=f"`:{emoji_json['title']}:`\n\n"
-                                            f"This server has an emoji approval queue, but you're an Administrator, "
-                                            f"so you bypass it. Lucky you."
-                            )
-
-                            embed.set_thumbnail(url=emoji_json["image"])
-
-                            # send
-                            await ctx.message.channel.send(embed=embed)
-
-            except:
-                # server doesn't have queue enabled; post the success message
-                if success_message:
-                    embed = discord.Embed(
-                        title=success_message,
-                        colour=Colours.success,
-                        description=f"`:{emoji_json['title']}:`"
-                    )
-
-                    embed.set_thumbnail(url=emoji_json["image"])
-
-                    # send
-                    await ctx.message.channel.send(embed=embed)
+                # send
+                await ctx.message.channel.send(embed=embed)
 
         return new_emoji
 
@@ -255,126 +208,6 @@ async def on_message(message):
 
 
 @bot.event
-async def on_guild_emojis_update(guild, before, after):
-    """
-    When an emoji is added to a server, delete it, and add it to the emoji queue if the server has one.
-
-    :param guild: the guild in which an emoji was removed/added
-    :param before: list of emojis before the event
-    :param after: list of emojis after the event
-    :return: N/A
-    """
-
-    # a list of new emojis (len should == 1)
-    new_emojis = list(filter(lambda e: e not in before, after))
-
-    if len(after) > len(before):
-        await add_to_emoji_queue(guild, new_emojis)
-
-
-async def add_to_emoji_queue(guild, new_emojis, user=None):
-
-    # check if the server has approval queue enabled
-    query = APPROVAL_QUEUES.find_one({"g": str(guild.id)},
-                                     {"_id": 0,
-                                      "queue_channel": 1,
-                                      "queue": 1})
-
-    try:
-        if query["queue_channel"]:
-
-            # get queue channel
-            queue_channel = guild.get_channel(int(query["queue_channel"]))
-
-            # remove emojis and queue them
-            for new_emoji in new_emojis:
-                url = str(new_emoji.url)  # url of image
-                id_ = int(new_emoji.id)  # emoji id
-                name = new_emoji.name  # emoji name
-                uploaded_by = await guild.fetch_emoji(int(id_))  # uploaded by
-
-                # get Member object of uploader so that permissions can be checked
-                guild_user = guild.get_member(uploaded_by.user.id)
-
-                # user is used if the emoji was installed through a command, to make it seem like the user who
-                # invoked the command uploaded the emoji, rather than the bot
-                #
-                # this is done to prevent users from bypassing the queue by using commmands
-                if user:
-                    guild_user = user
-
-                # if user is admin or user is the bot, bypass queue
-                if not guild_user.guild_permissions.administrator and guild_user.id != 749301838859337799:
-                    # otherwise, update DB with new addition to emoji queue
-                    APPROVAL_QUEUES.update_one({"g": str(guild.id)},
-                                               {
-                                                   "$push": {
-                                                       "queue": {
-                                                           str(new_emoji.id): {"url": url,
-                                                                               "id": id_,
-                                                                               "name": name,
-                                                                               "uploaded_by": str(uploaded_by.user)}
-                                                       }}},
-                                               upsert=True)
-
-                    # delete the emoji while we hold it hostage
-                    await new_emoji.delete(reason="Queueing this emoji for approval.")
-
-                    embed = discord.Embed(
-                        colour=Colours.base,
-                        title="Emoji approval required",
-                        description=f"{guild_user.name} wants to upload this emoji (`{name}`). Please "
-                                    f"indicate via reaction whether or not you approve it."
-                    )
-
-                    embed.set_author(name=guild_user, icon_url=guild_user.avatar_url)
-                    embed.set_image(url=url)
-
-                    # send approval form to mod channel
-                    approval_message = await queue_channel.send(embed=embed)
-
-                    # add reacts
-                    await approval_message.add_reaction("👍")
-                    await approval_message.add_reaction("👎")
-
-                    # reaction must:
-                    # - not be by a bot
-                    # - be either 👍 or 👎
-                    # - be on the approval message
-                    def check(payload):
-                        return \
-                            payload.message_id == approval_message.id \
-                            and not payload.member.bot \
-                            and payload.emoji.name in ["👍", "👎"]
-
-                    reaction = await bot.wait_for("raw_reaction_add", check=check, timeout=None)
-
-                    # emoji approved
-                    if reaction.emoji.name == "👍":
-                        installed_emoji = await install_emoji(guild, {"image": url, "title": name})
-
-                        # update form with success message
-                        await approval_message.edit(embed=discord.Embed(
-                            colour=Colours.success,
-                            title="Emoji approved",
-                            description=f"{reaction.member} approved {installed_emoji}, uploaded "
-                                        f"by {uploaded_by.user}."
-                        ))
-                    else:
-                        # update form with deny message
-                        await approval_message.edit(embed=discord.Embed(
-                            colour=Colours.fail,
-                            title="Emoji denied",
-                            description=f"{reaction.member} denied {uploaded_by.user}'s emoji suggestion."
-                        ))
-
-    # emoji queue not enabled
-    # bare except used to prevent errors filling up the console
-    except:
-        pass
-
-
-@bot.event
 async def on_guild_join(guild):
     """
     Send a message on guild join, then create a webhook to be used in the replace command.
@@ -386,13 +219,22 @@ async def on_guild_join(guild):
     # create the join embed
     embed = discord.Embed(
         title="Hi!",
-        description=f"Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
+        description=f"👋 Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
                     "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
-                    "**By default, I replace unparsed :emojis: that I find in the chat, so that you can use emojis "
-                    "from other servers without Nitro.** If you have a similar bot, like NQN or Animated Emojis, "
-                    "they might conflict. You can change this behaviour with `>replace off`.\n\n"
-                    f"**Commands:** `{'`, `'.join(sorted([c.name for c in bot.commands]))}`",
+                    
+                    "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
+                    "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
+                    "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
+                    "`>replace off`.",
         colour=Colours.base
+    )
+
+    embed.add_field(
+        name="Links",
+        value="[GitHub](https://github.com/passivity/emojis)\n"
+              "[Support server](https://discord.gg/wzG9Y8s)\n"
+              "[Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
+        inline=False
     )
 
     # send to the first channel the bot can type in
@@ -424,7 +266,9 @@ async def on_ready():
     while 1:
         try:
             await sleep(20)
-            await bot.change_presence(activity=discord.Game(name=f"ping for prefix | {len(bot.guilds)} servers"))
+            await bot.change_presence(activity=discord.Activity(name=f"{len(bot.guilds)} servers | >help",
+                                                                type=discord.ActivityType.watching))
+
             requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
                           headers={"Authorization": BOTS_GG_TOKEN},
                           data={"guildCount": len(bot.guilds),
@@ -432,17 +276,6 @@ async def on_ready():
 
         except Exception as err:
             print("Failed to change presence:", err)
-
-
-@bot.check
-async def has_voted(ctx):
-    voted = await dbl_post.get_user_vote(ctx.message.author.id)
-
-    if voted:
-        return True
-    else:
-        raise CustomCommandError("**[https://top.gg/bot/749301838859337799/vote](Please vote to use that command.)** "
-                                 "Your vote will take a few minutes to register.")
 
 
 async def send_error(ctx, err, extra_info=None, full_error=None):
@@ -473,6 +306,5 @@ if __name__ == "__main__":
     for extension in startup_extensions:
         bot.load_extension(extension)
 
-    with open("./data/token.txt", "r") as token, open("./data/botsggtoken.txt") as bots_gg_token:
-        dbl_post = dbl.DBLClient(bot, bots_gg_token.readline(), autopost=True)
+    with open("./data/token.txt", "r") as token:
         bot.run(token.readline())

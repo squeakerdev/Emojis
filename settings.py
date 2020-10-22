@@ -50,48 +50,6 @@ class Settings(commands.Cog):
 
         await bot_user.edit(nick=f"[{prefix}] Emojis")
 
-    @commands.group(name="queue",
-                    description=f"Configure an emoji approval queue.",
-                    usage="[BOT_PREFIX]queue [sub-command] <arguments>",
-                    aliases=["approval", "q"],
-                    pass_context=True)
-    async def queue(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise CustomCommandError(f"You need to enter a sub-command.\n\n"
-                                     f"**Sub-commands:** `"
-                                     f"{'` `'.join(sorted([command.name for command in self.queue.commands]))}`")
-
-    @queue.command(name="enable",
-                   description=f"Enable an emoji approval queue and set the channel that approval happens in.",
-                   usage="[BOT_PREFIX]queue enable [approval channel]",
-                   aliases=["channel", "#"],
-                   pass_context=True)
-    @has_permissions(manage_emojis=True, manage_guild=True)
-    async def enable(self, ctx, approval_channel: discord.TextChannel):
-        APPROVAL_QUEUES.update_one({"g": str(ctx.message.guild.id)},
-                                   {"$set": {"queue_channel": int(approval_channel.id)}},
-                                   upsert=True)
-
-        await ctx.send(embed=discord.Embed(colour=Colours.success,
-                                           title="Update successful",
-                                           description=f"You'll need to approve emojis that users upload in "
-                                                       f"{approval_channel.mention}."))
-
-    @queue.command(name="disable",
-                   description=f"Disable the emoji approval queue.",
-                   usage="[BOT_PREFIX]queue disable",
-                   aliases=["off"],
-                   pass_context=True)
-    @has_permissions(manage_emojis=True, manage_guild=True)
-    async def disable(self, ctx):
-        APPROVAL_QUEUES.update_one({"g": str(ctx.message.guild.id)},
-                                   {"$set": {"queue_channel": None}},
-                                   upsert=True)
-
-        await ctx.send(embed=discord.Embed(colour=Colours.success,
-                                           title="Update successful",
-                                           description=f"Emojis uploaded by users no longer need approval."))
-
     @commands.group(name="replace",
                     description=f"Configure the automatic replacement of emojis in this server.",
                     usage="[BOT_PREFIX]replace [sub-command] <arguments>",

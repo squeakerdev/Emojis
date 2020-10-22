@@ -33,7 +33,6 @@ class Information(commands.Cog):
 
         # create embed
         help_embed = discord.Embed(title=f"Help for {help_category.capitalize()}", colour=Colours.base)
-        # help_embed.set_footer(text=help_message, icon_url=self.bot.user.avatar_url)
 
         # if parameter is a category, list all commands in the category
         if help_category.capitalize() in self.bot.cogs:
@@ -41,10 +40,10 @@ class Information(commands.Cog):
                 return
             else:
                 random_cmd = choice(commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])).name
-                help_embed.add_field(name="Commands",
-                                     value=f"`{ctx.prefix}{'` `' + ctx.prefix + ''.join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
-                                           f"🔸 The correct syntax is `{ctx.prefix}[command]` (e.g. `{ctx.prefix}{random_cmd}`), NOT `{ctx.prefix}{help_category.lower()} [command]`.\n"
-                                           f"🔸 You can get information on a command with `{ctx.prefix}help [command]`.")
+                help_embed.add_field(
+                    name="Commands",
+                    value=f"`{ctx.prefix}{('` `' + ctx.prefix + '').join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
+                          f"🔸 You can get information on a command with `{ctx.prefix}help [command]`.")
 
         # not a category
         elif help_category.lower() in bot_commands.keys():
@@ -60,6 +59,18 @@ class Information(commands.Cog):
 
         # return the help embed
         return help_embed
+
+    @commands.command(name="feedback",
+                      description="Give feedback on the bot.",
+                      usage="[BOT_PREFIX]feedback",
+                      aliases=["fb", "suggest", "suggestion"],
+                      pass_context=True)
+    async def feedback(self, ctx):
+        await ctx.send(embed=discord.Embed(
+            colour=Colours.base,
+            description="Support and general enquiries go to **[the support server](https://discord.gg/wzG9Y8s)**. "
+                        "Direct feedback and bot suggestions to ruby#7777."
+        ))
 
     @commands.command(name="invite",
                       description="Invite Emojis to your server.",
@@ -95,7 +106,6 @@ class Information(commands.Cog):
 
         if help_category is None:
             help_embed_categories = discord.Embed(title=f"Help", colour=Colours.base)
-            # help_embed_categories.set_footer(text=help_message, icon_url=self.bot.user.avatar_url)
             count = 0
 
             help_embed_categories.description = "Easily manage your server's emojis."
@@ -146,13 +156,35 @@ class Information(commands.Cog):
         )
 
         stats_embed.add_field(name="Members",
-                              value=f"{sum(guild.member_count for guild in self.bot.guilds)}")
+                              value=f"{len(self.bot.users)}")
         stats_embed.add_field(name="Servers",
                               value=f"{len(self.bot.guilds)}")
         stats_embed.add_field(name="Emojis",
                               value=f"{len(self.bot.emojis)}")
 
         await ctx.channel.send(embed=stats_embed)
+
+    @commands.command(name="vote",
+                      description="Vote for the bot daily and help it stay alive.",
+                      usage="[BOT_PREFIX]vote",
+                      aliases=["v", "iamverycool"],
+                      pass_context=True)
+    async def vote(self, ctx):
+        """
+        Post a vote link.
+
+        :param ctx: context
+        :return: N/A
+        """
+
+        await ctx.message.add_reaction("🧡")
+
+        await ctx.send(embed=discord.Embed(
+            description=f"**[Click here to vote!](https://top.gg/bot/749301838859337799/vote)**\n\n"
+                        f"Thank you, {ctx.message.author.name}! By voting, you've unlocked `{ctx.prefix}upload` "
+                        f"and `{ctx.prefix}emojify` for 24 hours.",
+            colour=Colours.base
+        ))
 
     @commands.command(name="information",
                       description="Alias for `>help information`.",
