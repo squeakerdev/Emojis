@@ -223,7 +223,7 @@ async def on_guild_join(guild):
                     "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
                     
                     "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
-                    "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
+                    "chat(external emojis permission for @everyone required), so that you can use emojis from other servers without Nitro. If you have a similar bot, "
                     "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
                     "`>replace off`.",
         colour=Colours.base
