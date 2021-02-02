@@ -1,1 +1,1 @@
-ENTER_YOUR_DISCORD_TOKEN_HERE
+Input the token of the bot here.

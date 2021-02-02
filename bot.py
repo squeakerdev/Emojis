@@ -1,35 +1,12 @@
 import re
 import shutil
 from asyncio import sleep
-import dbl
+
 import discord
-import pymongo as mg
 import requests
-from discord.ext import commands
 
-# Setting up Database
-MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
-DATABASE = MONGO_CLIENT["Emojis"]
-PREFIX_LIST = DATABASE["prefixes"]
-SETTINGS = DATABASE["settings"]
-APPROVAL_QUEUES = DATABASE["verification_queues"]
-
-BOTS_GG_TOKEN = ""
-
-# stuff for replacing emojis
-EMOJI_CONVERTER = commands.EmojiConverter()
-
-
-class CustomCommandError(Exception):
-    pass
-
-
-# Colors used in the Bot
-class Colours:
-    base = discord.Color(16027908)  # normal: 16562199
-    success = discord.Color(3066993)
-    fail = discord.Color(15742004)
-    warn = discord.Color(16707936)
+from src.common import *
+from src.exceptions import *
 
 
 async def replace_unparsed_emojis(message: discord.Message):
@@ -45,8 +22,8 @@ async def replace_unparsed_emojis(message: discord.Message):
                                "replace_emojis": 1})
 
     if not query or query["replace_emojis"] is True:
-        # messages from bots aren't replaced
 
+        # messages from bots aren't replaced
         if not message.author.bot and not str(message.author).endswith("#0000"):
 
             # split message into list of words
@@ -223,7 +200,7 @@ async def on_guild_join(guild):
                     "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
                     
                     "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
-                    "chat(external emojis permission for @everyone required), so that you can use emojis from other servers without Nitro. If you have a similar bot, "
+                    "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
                     "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
                     "`>replace off`.",
         colour=Colours.base
@@ -260,8 +237,6 @@ async def on_ready():
     """
 
     await bot.change_presence(activity=discord.Game(name="just updated!"))
-
-    print(f"Serving {sum(guild.member_count for guild in bot.guilds)} users in {len(bot.guilds)} servers!")
 
     while 1:
         try:
@@ -301,10 +276,15 @@ async def send_error(ctx, err, extra_info=None, full_error=None):
 
 
 if __name__ == "__main__":
-    startup_extensions = ["information", "settings", "emoji", "management"]
+    startup_extensions = [
+        "information",
+        "settings",
+        "emoji",
+        "management"
+    ]
 
     for extension in startup_extensions:
-        bot.load_extension(extension)
+        bot.load_extension(f"src.{extension}")
 
     with open("./data/token.txt", "r") as token:
         bot.run(token.readline())

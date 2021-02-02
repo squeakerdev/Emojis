@@ -1,17 +1,8 @@
 import discord
-import pymongo as mg
-from discord.ext import commands
 from discord.ext.commands import has_permissions
 
-from bot import Colours
-from bot import CustomCommandError
-
-# Setting up Database
-MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
-DATABASE = MONGO_CLIENT["Emojis"]
-PREFIX_LIST = DATABASE["prefixes"]
-SETTINGS = DATABASE["settings"]
-APPROVAL_QUEUES = DATABASE["verification_queues"]
+from src.common import *
+from src.exceptions import *
 
 
 def setup(bot):

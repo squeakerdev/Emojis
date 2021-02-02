@@ -1,19 +1,10 @@
 import re
 
 import discord
-import pymongo as mg
-from discord.ext import commands
 from discord.ext.commands import has_permissions
 
-from bot import Colours
-from bot import CustomCommandError
-
-# Setting up Database
-MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
-DATABASE = MONGO_CLIENT["Emojis"]
-PREFIX_LIST = DATABASE["prefixes"]
-SETTINGS = DATABASE["settings"]
-APPROVAL_QUEUES = DATABASE["verification_queues"]
+from src.common import *
+from src.exceptions import *
 
 
 def setup(bot):
@@ -183,3 +174,57 @@ class Management(commands.Cog):
 
         # send success message
         await msg_to_edit.edit(embed=embed)
+
+    @commands.command(name="usage",
+                      description="View command usage for Emojis.",
+                      usage="[BOT_PREFIX]usage",
+                      aliases=["us", "ug"],
+                      pass_context=True)
+    async def command_usage(self, ctx):
+        usage = [i for i in COMMAND_USAGE.find()]
+        sorted_usage = sorted(usage, key=lambda x: x["usage"], reverse=True)
+
+        usage_template = "`{0}{1}` - {2} uses"
+
+        await ctx.send(
+            embed=discord.Embed(
+                title="Top commands",
+                description="\n".join([usage_template.format(ctx.prefix, i["command"], i["usage"]) for i in sorted_usage[0:10]]),
+                colour=Colours.base
+            )
+        )
+
+    @commands.command(name="users",
+                      description="Get the amount of people who have ever run a vote-locked command.",
+                      usage="[BOT_PREFIX]users",
+                      aliases=[],
+                      hidden=True,
+                      pass_context=True)
+    @commands.is_owner()
+    async def users(self, ctx):
+        users_amount = VOTES.count()
+
+        await ctx.send(
+            embed=discord.Embed(
+                colour=Colours.base,
+                description=f"{users_amount}",
+            ).set_footer(text="Calculated by the number of users who have used vote-locked commands.")
+        )
+
+    @commands.command(name="evaluate",
+                      description="Evaluate Python code and run it.",
+                      usage="[BOT_PREFIX]evaluate [code]",
+                      aliases=["eval", "ev"],
+                      hidden=True,
+                      pass_context=True)
+    @commands.is_owner()
+    async def evaluate(self, ctx, *, args):
+        try:
+            eval_result = eval(args)
+        except Exception as e:
+            eval_result = str(e)
+
+        eval_embed = discord.Embed(colour=Colours.base)
+        eval_embed.add_field(name="Result", value=f"```py\n{eval_result}\n```")
+
+        await ctx.send(embed=eval_embed)

@@ -1,19 +1,12 @@
-from random import choice
+from random import randint
+
 import discord
-from discord.ext import commands
+
 from bot import send_error
-from bot import CustomCommandError
-from bot import Colours
-import pymongo as mg
+from src.common import *
+from src.exceptions import *
 
 CATEGORY_EMOJIS = ["🔸", "🔸", "🔸", "🔸"]
-
-# Setting up Database
-MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
-DATABASE = MONGO_CLIENT["Emojis"]
-PREFIX_LIST = DATABASE["prefixes"]
-SETTINGS = DATABASE["settings"]
-APPROVAL_QUEUES = DATABASE["verification_queues"]
 
 
 def setup(bot):
@@ -39,10 +32,9 @@ class Information(commands.Cog):
             if help_category.lower() == "developer" and ctx.message.author.id != 554275447710548018:
                 return
             else:
-                random_cmd = choice(commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])).name
                 help_embed.add_field(
                     name="Commands",
-                    value=f"`{ctx.prefix}{('` `' + ctx.prefix + '').join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()])]))}`\n\n"
+                    value=f"`{ctx.prefix}{('` `' + ctx.prefix + '').join(sorted([command.name for command in commands.Cog.get_commands(self.bot.cogs[help_category.capitalize()]) if not command.hidden]))}`\n\n"
                           f"🔸 You can get information on a command with `{ctx.prefix}help [command]`.")
 
         # not a category
@@ -156,7 +148,7 @@ class Information(commands.Cog):
         )
 
         stats_embed.add_field(name="Members",
-                              value=f"{len(self.bot.users)}")
+                              value=f"{sum([g.member_count for g in self.bot.guilds])}")
         stats_embed.add_field(name="Servers",
                               value=f"{len(self.bot.guilds)}")
         stats_embed.add_field(name="Emojis",
@@ -226,15 +218,45 @@ class Information(commands.Cog):
 
         # send specific cool-down message
         if isinstance(error, commands.CommandOnCooldown):
-            await send_error(ctx, f"<:redticksmall:736197216900874240> That command is on cooldown. Try again in {round(error.retry_after)} seconds.")
+            await send_error(
+                ctx,
+                f"<:redticksmall:736197216900874240> That command is on cooldown."
+                f" Try again in {round(error.retry_after)} seconds."
+            )
 
         # miscellaneous errors
         else:
             err = error.__cause__ if error.__cause__ is not None else error
             try:
-                await send_error(ctx, f"<:redticksmall:736197216900874240> {err}", extra_info={"name": "Expected format", "value": ctx.command.usage}, full_error=error)
+                await send_error(
+                    ctx,
+                    f"<:redticksmall:736197216900874240> {err}",
+                    extra_info={"name": "Expected format", "value": ctx.command.usage},
+                    full_error=error
+                )
             except AttributeError:
                 pass
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx):
+        # Log the command
+        command = ctx.message.content.split()[0].split(ctx.prefix)[1]
+        COMMAND_USAGE.update_one(
+            {"command": command},
+            {"$inc": {"usage": 1}},
+            upsert=True
+        )
+
+        # Send a vote reminder
+        if randint(1, 5) == 1:
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"<:warningsmall:744570500919066706> **Hey {ctx.message.author.name}!** If you like "
+                                f"this bot, please **[vote for it](https://top.gg/bot/749301838859337799/vote)** to "
+                                f"keep it alive!",
+                    colour=Colours.warn
+                )
+            )
 
     @commands.Cog.listener()
     async def on_ready(self):
