@@ -1,28 +1,16 @@
 import asyncio
 import re
-from asyncio import sleep
-from os import remove
 from random import choice, randint
 
 import dbl
-from PIL import Image
 import discord
-import pymongo as mg
-from discord.ext import commands
+from PIL import Image
 from discord.ext.commands import has_permissions
 
-from bot import Colours, install_emoji, send_error
-from bot import CustomCommandError
-from bot import EMOJI_CONVERTER
+from bot import install_emoji
+from src.common import *
+from src.exceptions import *
 
-# Setting up Database
-MONGO_CLIENT = mg.MongoClient("mongodb://localhost:27017")
-DATABASE = MONGO_CLIENT["Emojis"]
-PREFIX_LIST = DATABASE["prefixes"]
-SETTINGS = DATABASE["settings"]
-APPROVAL_QUEUES = DATABASE["verification_queues"]
-
-PARTIAL_EMOJI_CONVERTER = commands.PartialEmojiConverter()
 
 ACCEPTED_LETTERS = {
     "1": ":one:",
@@ -67,10 +55,8 @@ class Emoji(commands.Cog):
 
         # tokens for updating stats on bot listings
         with open("./data/botsggtoken.txt") as bots_gg_token:
-            self.DBL_CLIENT = dbl.DBLClient(self.bot, bots_gg_token.readline(), autopost=True)
-
-    async def has_voted(self, ctx):
-        voted = await self.DBL_CLIENT.get_user_vote(ctx.message.author.id)
+            self.DBL_CLIENT = dbl.DBLClient(
+                self.bot, bots_gg_token.readline(), autopost=True)
 
         if voted:
             return True
@@ -116,14 +102,16 @@ class Emoji(commands.Cog):
         )
 
         # add a footer to the embed that shows the current page number
-        embed.set_footer(text=f"Page {start_at_index + 1} of {len(emoji_list)}", icon_url=ctx.message.author.avatar_url)
+        embed.set_footer(
+            text=f"Page {start_at_index + 1} of {len(emoji_list)}", icon_url=ctx.message.author.avatar_url)
 
         # add a preview of the emoji
         embed.set_thumbnail(url=emoji.url)
 
         # add fields that show details about the target emoji
         embed.add_field(name="Name", value=f"`{emoji.name}`", inline=True)
-        embed.add_field(name="Animated", value=str(emoji.animated), inline=True)
+        embed.add_field(name="Animated", value=str(
+            emoji.animated), inline=True)
         embed.add_field(name="URL", value=f"[link]({emoji.url})", inline=True)
 
         # the message already exists
@@ -204,11 +192,11 @@ class Emoji(commands.Cog):
                       usage="[BOT_PREFIX]search [search term (one word)]",
                       aliases=[],
                       pass_context=True)
-    @has_permissions(manage_emojis=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def search(self, ctx, *, search_term):
         search_term = search_term.replace(" ", "")
-        search_results = [emoji for emoji in self.bot.emojis if search_term.lower() in emoji.name.lower()]
+        search_results = [
+            emoji for emoji in self.bot.emojis if search_term.lower() in emoji.name.lower()]
 
         await self.browse_for_emojis(ctx=ctx, emoji_list=search_results)
 
@@ -221,9 +209,12 @@ class Emoji(commands.Cog):
     async def craft(self, ctx, base, eyes, mouth, brows=None, extras=None):
         try:
             # convert arguments to files
-            base = Image.open(f"./data/emoji_crafting/bases/{base}.png").convert("RGBA").resize((100, 100))
-            eyes = Image.open(f"./data/emoji_crafting/eyes/{eyes}.png").convert("RGBA").resize((100, 100))
-            mouth = Image.open(f"./data/emoji_crafting/mouths/{mouth}.png").convert("RGBA").resize((100, 100))
+            base = Image.open(
+                f"./data/emoji_crafting/bases/{base}.png").convert("RGBA").resize((100, 100))
+            eyes = Image.open(
+                f"./data/emoji_crafting/eyes/{eyes}.png").convert("RGBA").resize((100, 100))
+            mouth = Image.open(
+                f"./data/emoji_crafting/mouths/{mouth}.png").convert("RGBA").resize((100, 100))
 
             # combine images
             emoji = await combine_images(base, mouth)
@@ -264,7 +255,8 @@ class Emoji(commands.Cog):
 
         # no emojis provided
         if len(emojis) == 0:
-            raise CustomCommandError("You need to input at least one custom emoji.")
+            raise CustomCommandError(
+                "You need to input at least one custom emoji.")
         elif len(emojis) > 3:
             raise CustomCommandError("This command is limited to 3 emojis.")
 
@@ -326,16 +318,22 @@ class Emoji(commands.Cog):
                                      f"({ctx.guild.name}).")
 
         # setup
-        emoji_details_embed = discord.Embed(title=emoji.name, colour=Colours.base)
+        emoji_details_embed = discord.Embed(
+            title=emoji.name, colour=Colours.base)
         emoji_details_embed.set_thumbnail(url=emoji.url)
 
         # fields
         emoji_details_embed.add_field(name="ID", value=emoji.id, inline=True)
-        emoji_details_embed.add_field(name="Usage", value=f"`:{emoji.name}:`", inline=True)
-        emoji_details_embed.add_field(name="Created at", value=emoji.created_at, inline=True)
-        emoji_details_embed.add_field(name="Created by", value=emoji.user, inline=True)
-        emoji_details_embed.add_field(name="URL", value=f"[Link]({emoji.url})", inline=True)
-        emoji_details_embed.add_field(name="Animated", value=emoji.animated, inline=True)
+        emoji_details_embed.add_field(
+            name="Usage", value=f"`:{emoji.name}:`", inline=True)
+        emoji_details_embed.add_field(
+            name="Created at", value=emoji.created_at, inline=True)
+        emoji_details_embed.add_field(
+            name="Created by", value=emoji.user, inline=True)
+        emoji_details_embed.add_field(
+            name="URL", value=f"[Link]({emoji.url})", inline=True)
+        emoji_details_embed.add_field(
+            name="Animated", value=emoji.animated, inline=True)
 
         # send
         await ctx.channel.send(embed=emoji_details_embed)
@@ -394,8 +392,6 @@ class Emoji(commands.Cog):
         :return: N/A
         """
 
-        await self.has_voted(ctx)
-
         # fix weird argument ordering
         if image is None:
             if len(ctx.message.attachments) == 0:
@@ -435,7 +431,6 @@ class Emoji(commands.Cog):
                       aliases=["e"],
                       pass_context=True)
     async def emojify(self, ctx, *, sentence=None):
-        await self.has_voted(ctx)
 
         """
         Convert a sentence to emojis.
@@ -450,14 +445,16 @@ class Emoji(commands.Cog):
                                      f"Check out `{ctx.prefix}help emojify` for more information.")
 
         # remove non-accepted characters
-        sentence = list(filter(lambda letter_: letter_.isalpha() or letter_ in ACCEPTED_LETTERS, list(sentence)))
+        sentence = list(filter(lambda letter_: letter_.isalpha()
+                               or letter_ in ACCEPTED_LETTERS, list(sentence)))
 
         string_to_send = ""
 
         for letter in sentence:
             # A-Z
             if letter.isalpha():
-                string_to_send += ":regional_indicator_{}:".format(letter.lower())
+                string_to_send += ":regional_indicator_{}:".format(
+                    letter.lower())
             # not A-Z, but is an acceptable character
             else:
                 string_to_send += ACCEPTED_LETTERS[letter]
@@ -466,7 +463,8 @@ class Emoji(commands.Cog):
 
         # no accepted characters
         if len(string_to_send) == 0:
-            raise CustomCommandError(f"Make sure your sentence includes some A-Z characters.")
+            raise CustomCommandError(
+                f"Make sure your sentence includes some A-Z characters.")
 
         # too long
         elif len(string_to_send) > 2000:
