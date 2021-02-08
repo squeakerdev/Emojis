@@ -53,18 +53,6 @@ class Emoji(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # tokens for updating stats on bot listings
-        with open("./data/botsggtoken.txt") as bots_gg_token:
-            self.DBL_CLIENT = dbl.DBLClient(
-                self.bot, bots_gg_token.readline(), autopost=True)
-
-        if voted:
-            return True
-        else:
-            raise CustomCommandError(
-                "**[Please vote to use that command.](https://top.gg/bot/749301838859337799/vote)** "
-                "Your vote will take a few minutes to register.")
-
     async def browse_for_emojis(self, ctx, emoji_list, start_at_index=0, existing_search_message: discord.Message = None):
         accepted_reactions = ["⬅", "👍", "➡", "🔀"]
         sent_message = None
