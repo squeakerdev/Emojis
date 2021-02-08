@@ -192,6 +192,7 @@ class Emoji(commands.Cog):
                       usage="[BOT_PREFIX]search [search term (one word)]",
                       aliases=[],
                       pass_context=True)
+    @has_permissions(manage_emojis=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def search(self, ctx, *, search_term):
         search_term = search_term.replace(" ", "")
