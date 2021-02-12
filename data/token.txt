@@ -1,1 +1,0 @@
-Input the token of the bot here.
