@@ -2,6 +2,16 @@ import discord
 import discord.ext.commands as commands
 import requests
 import time
+import sqlite3 as sqlite
+
+# init database
+connection = sqlite.connect("bot.db")
+db = connection.cursor()
+
+try:
+    db.execute("""CREATE TABLE prefixes (guild_id INTEGER, prefix STRING)""")
+except sqlite.OperationalError as err:
+    print("Database existing, using that one.")
 
 with open("./data/botsggtoken.txt") as token:
     BOTS_GG_TOKEN = token.readline()
@@ -15,8 +25,16 @@ class Colours:
     warn: discord.Color = discord.Color(16707936)
 
 
-def get_prefix():
-    return ">"
+def get_prefix(client, message):
+    try:
+        guild = message.guild
+    except AttributeError:
+        guild = message
+    try:
+        db.execute("SELECT prefix FROM prefixes WHERE guild_id=?", guild.id)
+        return db.fetchall()
+    except:
+        return ">"
 
 
 bot = commands.AutoShardedBot(
