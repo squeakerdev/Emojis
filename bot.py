@@ -119,10 +119,10 @@ async def on_ready():
             await bot.change_presence(activity=discord.Activity(name=f"{len(bot.guilds)} servers | >help",
                                                                 type=discord.ActivityType.watching))
 
-            requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
-                          headers={"Authorization": BOTS_GG_TOKEN},
-                          data={"guildCount": len(bot.guilds),
-                                "shardCount": len(bot.latencies)})
+            # requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
+            #              headers={"Authorization": BOTS_GG_TOKEN},
+            #              data={"guildCount": len(bot.guilds),
+            #                    "shardCount": len(bot.latencies)})
 
         except Exception as err:
             print("Failed to change presence:", err)
