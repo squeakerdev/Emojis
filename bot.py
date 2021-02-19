@@ -115,7 +115,7 @@ async def on_ready():
 
     while 1:
         try:
-            await time.sleep(20)
+            time.sleep(20)
             await bot.change_presence(activity=discord.Activity(name=f"{len(bot.guilds)} servers | >help",
                                                                 type=discord.ActivityType.watching))
 
