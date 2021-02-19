@@ -2,11 +2,13 @@ import discord
 import discord.ext.commands as commands
 import requests
 import time
+import asyncio
 import sqlite3 as sqlite
 
 # init database
 connection = sqlite.connect("bot.db")
 db = connection.cursor()
+
 
 try:
     db.execute("""CREATE TABLE prefixes (guild_id INTEGER, prefix STRING)""")
@@ -115,14 +117,14 @@ async def on_ready():
 
     while 1:
         try:
-            time.sleep(20)
+            await asyncio.sleep(20)
             await bot.change_presence(activity=discord.Activity(name=f"{len(bot.guilds)} servers | >help",
                                                                 type=discord.ActivityType.watching))
 
-            # requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
-            #              headers={"Authorization": BOTS_GG_TOKEN},
-            #              data={"guildCount": len(bot.guilds),
-            #                    "shardCount": len(bot.latencies)})
+            requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
+                          headers={"Authorization": BOTS_GG_TOKEN},
+                          data={"guildCount": len(bot.guilds),
+                                "shardCount": len(bot.latencies)})
 
         except Exception as err:
             print("Failed to change presence:", err)
