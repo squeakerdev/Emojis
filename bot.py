@@ -1,5 +1,7 @@
 from sqlite3.dbapi2 import sqlite_version
+from typing import Counter
 import discord
+from discord import colour
 import discord.ext.commands as commands
 import requests
 import time
@@ -122,6 +124,12 @@ async def on_ready():
 
         except Exception as err:
             print("Failed to change presence:", err)
+
+
+@bot.command(name="ping")
+async def ping(ctx):
+    embed = discord.Embed(title="Pong :ping_pong: ",
+                          description=f"{bot.latencies}", colour=Colours.base)
 
 
 async def send_error(ctx, err, extra_info=None, full_error=None):
