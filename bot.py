@@ -97,7 +97,9 @@ async def on_guild_join(guild):
 
     prefix = ">"
 
-    bot_user = await guild.fetch_member(749301838859337799)
+    # Using another bot for testing purposes
+    bot_user = await guild.fetch_member(811263136551534633)
+    # bot_user = await guild.fetch_member(749301838859337799)
     await bot_user.edit(nick=f"[{prefix}] Emojis")
 
 
@@ -128,8 +130,11 @@ async def on_ready():
 
 @bot.command(name="ping")
 async def ping(ctx):
+    current_shard = (ctx.guild.id >> 22) % bot.shard_count
+    latency = str(round(bot.latencies[current_shard][1], 2)) + "ms"
     embed = discord.Embed(title="Pong :ping_pong: ",
-                          description=f"{bot.latencies}", colour=Colours.base)
+                          description=f"{latency}", colour=Colours.base)
+    await ctx.send(embed=embed)
 
 
 async def send_error(ctx, err, extra_info=None, full_error=None):
