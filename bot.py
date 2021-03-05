@@ -149,5 +149,13 @@ async def send_error(ctx, err, extra_info=None, full_error=None):
     await ctx.send(embed=error_embed)
 
 if __name__ == "__main__":
+    # Remove the default help command so a better one can be added
+    bot.remove_command("help")
+
+    # Load cogs -- new cogs must be added manually to this list
+    # Always load help.py last so that the command list is up-tp-date
+    for cog in ("src.emoji", "src.help"):
+        bot.load_extension(cog)
+
     with open("./data/token.txt", "r") as token:
         bot.run(token.readline())

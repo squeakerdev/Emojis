@@ -1,4 +1,5 @@
 import discord
+from typing import *
 
 
 # Colors used in the Bot
