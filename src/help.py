@@ -1,7 +1,4 @@
 import discord.ext.commands as commands
-import discord
-import requests
-import shutil
 from src.common import *
 
 
