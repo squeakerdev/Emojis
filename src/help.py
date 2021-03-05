@@ -56,13 +56,15 @@ class Help(commands.Cog):
 
             embed = (
                 discord.Embed(title=command_name.lower())
-                .add_field(name="Description", value=command.description)
-                .add_field(name="Usage", value="`%s`" % command.usage)
+                .add_field(name="Description", value=command.description or "None")
+                .add_field(name="Usage", value="`%s`" % command.usage or "None")
             )
 
             await ctx.send(embed=embed)
         # Get a list of commands
         else:
             await ctx.send(
-                embed=discord.Embed(description=self.command_names_formatted)
+                embed=discord.Embed(
+                    title="Commands", description=self.command_names_formatted
+                )
             )
