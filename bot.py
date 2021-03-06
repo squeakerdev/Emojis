@@ -1,15 +1,13 @@
-from sqlite3.dbapi2 import sqlite_version
-from typing import Counter
-import discord
-from discord import colour
-import discord.ext.commands as commands
-import requests
-import time
 import asyncio
+import re
+
 import aiosqlite as sqlite
+import discord.ext.commands as commands
+
+from src.common import *
 
 
-async def init_db():
+async def init_db() -> None:
     db = await sqlite.connect("bot.db")
 
     try:
@@ -19,7 +17,7 @@ async def init_db():
     await db.close()
 
 
-async def get_prefix(client, message):
+async def get_prefix(client, message) -> str:
     try:
         guild = message.guild
     except AttributeError:
@@ -34,28 +32,50 @@ async def get_prefix(client, message):
 
 
 bot = commands.AutoShardedBot(
-    command_prefix=get_prefix, case_insensitive=True, owner_ids=[686941073792303157686941073792303157])
+    command_prefix=get_prefix,
+    case_insensitive=True,
+    owner_ids=[686941073792303157686941073792303157],
+)
 
 bot.loop.create_task(init_db())
 
-with open("./data/botsggtoken.txt") as token:
-    BOTS_GG_TOKEN = token.readline()
 
+@bot.event
+async def on_command_error(ctx, err) -> None:
+    """
+    Catch and handle errors thrown by the bot.
 
-# Colors used in the Bot
-class Colours:
-    base: discord.Color = discord.Color(16562199)
-    success: discord.Color = discord.Color(3066993)
-    fail: discord.Color = discord.Color(15742004)
-    warn: discord.Color = discord.Color(16707936)
+    :param ctx:
+    :param err: The error thrown.
+    """
+    # Attempt to simplify error message
+    msg = str(getattr(err, "__cause__") or err)
+
+    # Simplify HTTP errors
+    # Example:
+    #    "400 Bad Request (error code: 30008): Maximum number of emojis reached (50)"
+    #    becomes:
+    #    "Maximum number of emojis reached (50)"
+    match = re.search(r"error code: (\d*)\): ", msg)
+    if match:
+        msg = msg[match.span()[1]:]
+
+    # Send the error to the user
+    await send_error(ctx, msg)
+
+    # For development purposes, so the error can be seen in console
+    # This shows the full error, not the simplified version
+    raise err
 
 
 @bot.event
 async def on_message(message):
     if message.content.startswith("<@!749301838859337799>"):
         prefix = get_prefix(bot, message)
-        await message.channel.send(f"{message.author.mention}, this server's prefix is `{prefix}`. Try `{prefix}help`"
-                                   f" to get started.")
+        await message.channel.send(
+            f"{message.author.mention}, this server's prefix is `{prefix}`. Try `{prefix}help`"
+            f" to get started."
+        )
 
     # message = await replace_unparsed_emojis(message)
 
@@ -68,21 +88,20 @@ async def on_guild_join(guild):
     embed = discord.Embed(
         title="Hi!",
         description=f"👋 Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
-                    "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
-
-                    "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
-                    "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
-                    "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
-                    "`>replace off`.",
-        colour=Colours.base
+        "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
+        "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
+        "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
+        "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
+        "`>replace off`.",
+        colour=Colours.base,
     )
 
     embed.add_field(
         name="Links",
         value="[GitHub](https://github.com/passivity/emojis)\n"
-              "[Support server](https://discord.gg/wzG9Y8s)\n"
-              "[Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
-        inline=False
+        "[Support server](https://discord.gg/wzG9Y8s)\n"
+        "[Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
+        inline=False,
     )
 
     # send to the first channel the bot can type in
@@ -116,13 +135,12 @@ async def on_ready():
     while 1:
         try:
             await asyncio.sleep(20)
-            await bot.change_presence(activity=discord.Activity(name=f"{len(bot.guilds)} servers | >help",
-                                                                type=discord.ActivityType.watching))
-
-            requests.post(f"https://discord.bots.gg/api/v1/bots/749301838859337799/stats",
-                          headers={"Authorization": BOTS_GG_TOKEN},
-                          data={"guildCount": len(bot.guilds),
-                                "shardCount": len(bot.latencies)})
+            await bot.change_presence(
+                activity=discord.Activity(
+                    name=f"{len(bot.guilds)} servers | >help",
+                    type=discord.ActivityType.watching,
+                )
+            )
 
         except Exception as err:
             print("Failed to change presence:", err)
@@ -132,21 +150,24 @@ async def on_ready():
 async def ping(ctx):
     current_shard = (ctx.guild.id >> 22) % bot.shard_count
     latency = str(round(bot.latencies[current_shard][1], 2)) + "ms"
-    embed = discord.Embed(title="Pong :ping_pong: ",
-                          description=f"{latency}", colour=Colours.base)
+    embed = discord.Embed(
+        title="Pong :ping_pong: ", description=f"{latency}", colour=Colours.base
+    )
     await ctx.send(embed=embed)
 
 
-async def send_error(ctx, err, extra_info=None, full_error=None):
-    error_embed = discord.Embed()
-    error_embed.colour = Colours.fail
-    error_embed.description = err
+async def send_error(ctx, err: Union[str, Exception]):
+    """
+    Send an error to a specified channel.
 
-    if not (extra_info and isinstance(full_error, commands.CommandInvokeError)):
-        error_embed.description = f"{err}\n\n**{extra_info['name']}:** `{extra_info['value']}`".replace("[BOT_PREFIX]",
-                                                                                                        ctx.prefix)
+    :param ctx:
+    :param err: The error message to send
+    """
 
-    await ctx.send(embed=error_embed)
+    await ctx.send(
+        embed=discord.Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
+    )
+
 
 if __name__ == "__main__":
     # Remove the default help command so a better one can be added
@@ -157,5 +178,6 @@ if __name__ == "__main__":
     for cog in ("src.emoji", "src.help"):
         bot.load_extension(cog)
 
+    # Code written after this block may not run
     with open("./data/token.txt", "r") as token:
         bot.run(token.readline())

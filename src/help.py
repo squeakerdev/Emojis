@@ -47,6 +47,7 @@ class Help(commands.Cog):
         Get help for the bot. Users can specify command_name to get specific help on a command, or omit for a list of
         commands.
 
+        :param ctx:
         :param command_name: [Optional] The command name to look up.
         """
 

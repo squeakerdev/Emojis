@@ -6,7 +6,7 @@ import requests
 from src.common import *
 
 
-async def check_if_emoji(ctx, query: str) -> Union[discord.PartialEmoji, False]:
+async def check_if_emoji(ctx, query: str) -> Union[discord.PartialEmoji, bool]:
     """
     Check if a string can be converted to an emoji.
 
@@ -106,11 +106,26 @@ class Emoji(commands.Cog):
             # No attachments
             else:
                 # Check if name is an emoji to be "stolen"
-                is_emoji, emoji = await check_if_emoji(ctx, name)
+                emoji = await check_if_emoji(ctx, name)
 
-                if is_emoji:
+                if emoji:
                     await upload_emoji(ctx, emoji.name, emoji.url)
                 else:
                     raise Exception(
                         "That doesn't look quite right. Check `>help upload`."
                     )
+
+    @commands.command(
+        name="steal",
+        description="Upload an emoji from another server. Requires Nitro!",
+        usage=">steal [emoji]",
+    )
+    @commands.has_permissions(manage_emojis=True)
+    async def steal(self, ctx, emoji):
+        """
+        Steal an emoji from another server.
+
+        :param ctx:
+        :param emoji: The emoji to steal. Must be a custom emoji.
+        """
+        await self.upload(ctx, emoji)
