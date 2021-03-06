@@ -1,44 +1,41 @@
+from io import BytesIO
+
 import discord.ext.commands as commands
-import discord
 import requests
-import shutil
+
 from src.common import *
 
 
-async def install_emoji(ctx, emoji_json, success_message: str = None):
-    # download the image
-    download = requests.get(emoji_json["image"], stream=True)
+async def upload_emoji(
+    ctx: discord.Message, name: str, url: str, post_success: bool = True
+) -> discord.Emoji:
+    """
+    Upload a custom emoji to a guild.
 
-    # image downloaded sucessfully
-    if download.status_code == 200:
-        with open(f"./emojis/{emoji_json['title']}.gif", "wb") as image:
-            download.raw.decode_content = True
-            shutil.copyfileobj(download.raw, image)
+    :param ctx: Context. Must be a Message.
+    :param name: The name for the emoji.
+    :param url: The source of the image. Must be < 256kb.
+    :param post_success: Whether or not to post a success message in the chat.
+    :return: The new emoji.
+    """
+    response = requests.get(url)
 
+    if response.ok:
+        # Store the image in BytesIO to avoid saving to disk
+        emoji_bytes = BytesIO(response.content)
+
+        # Upload the emoji to the Guild
+        new_emoji = await ctx.guild.create_custom_emoji(
+            name=name, image=emoji_bytes.read()
+        )
     else:
-        raise Exception(
-            f"Recieved bad status code uploading {emoji_json['title']}: {download.status_code}")
+        raise Exception("Couldn't fetch image (%s)." % response.status_code)
 
-    with open(f"./emojis/{emoji_json['title']}.gif", "rb") as image:
+    # Post a success Embed in the chat
+    if post_success:
+        await ctx.send(f"{new_emoji} `:{name}:`")
 
-        # install the emoji
-        if isinstance(ctx, discord.Guild):
-            new_emoji = await ctx.create_custom_emoji(name=emoji_json['title'], image=image.read())
-
-        else:
-            new_emoji = await ctx.message.guild.create_custom_emoji(name=emoji_json['title'], image=image.read())
-            embed = discord.Embed(
-                title=success_message,
-                colour=Colours.success,
-                description=f"`:{emoji_json['title']}:`"
-            )
-
-            embed.set_thumbnail(url=emoji_json["image"])
-
-            # send the embed
-            await ctx.message.channel.send(embed=embed)
-
-        return new_emoji
+    return new_emoji
 
 
 def setup(bot):
@@ -46,6 +43,5 @@ def setup(bot):
 
 
 class Emoji(commands.Cog):
-
     def __init__(self, bot):
         self.bot = bot
