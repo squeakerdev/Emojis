@@ -84,41 +84,30 @@ async def on_message(message):
 
 @bot.event
 async def on_guild_join(guild):
-    # create the join embed
+    # Create the on-join Embed
     embed = discord.Embed(
         title="Hi!",
-        description=f"👋 Hi, **{guild.name}**! I'm Emojis: a bot to easily manage your "
-        "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!\n\n"
-        "<:warningsmall:744570500919066706> By default, I replace unparsed :emojis: that I find in the "
-        "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
-        "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
-        "`>replace off`.",
+        description=f"I'm Emojis: a bot to easily manage your "
+        "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!",
     )
 
     embed.add_field(
         name="Links",
-        value="[GitHub](https://github.com/passivity/emojis)\n"
-        "[Support server](https://discord.gg/wzG9Y8s)\n"
-        "[Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
+        value="- [GitHub](https://github.com/passivity/emojis)\n"
+        "- [Support server](https://discord.gg/wzG9Y8s)\n"
+        "- [Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
         inline=False,
     )
 
-    # send to the first channel the bot can type in
+    # Send the Embed to the first channel the bot can type in
     for channel in guild.text_channels:
         if channel.permissions_for(guild.me).send_messages:
             await channel.send(embed=embed)
             break
 
-    # create a webhook in every text channel
+    # Create a webhook in each channel
     for channel in guild.text_channels:
         await channel.create_webhook(name="Emojis")
-
-    prefix = ">"
-
-    # Using another bot for testing purposes
-    bot_user = await guild.fetch_member(811263136551534633)
-    # bot_user = await guild.fetch_member(749301838859337799)
-    await bot_user.edit(nick=f"[{prefix}] Emojis")
 
 
 @bot.event

@@ -1,12 +1,16 @@
+from datetime import datetime
 from io import BytesIO
+from random import choice, randint
+from re import sub
 
+import asyncio
 import discord.ext.commands as commands
 import requests
 
 from src.common import *
 
 
-async def check_if_emoji(ctx, query: str) -> Union[discord.PartialEmoji, bool]:
+async def check_if_emoji(ctx, query: str) -> Union[discord.PartialEmoji, None]:
     """
     Check if a string can be converted to an emoji.
 
@@ -18,9 +22,9 @@ async def check_if_emoji(ctx, query: str) -> Union[discord.PartialEmoji, bool]:
         # Check if query can be converted to an emoji
         emoji = await commands.PartialEmojiConverter().convert(ctx=ctx, argument=query)
 
-        return emoji or False
+        return emoji or None
     except commands.BadArgument:  # Failed
-        return False
+        return None
 
 
 async def upload_emoji(
@@ -50,7 +54,7 @@ async def upload_emoji(
 
     # Post a success Embed in the chat
     if post_success:
-        await ctx.send(f"**Done!**  {new_emoji} `:{name}:`")
+        await ctx.send(f"{Emojis.success} **Done!**  {new_emoji}")
 
     return new_emoji
 
@@ -67,6 +71,7 @@ class Emoji(commands.Cog):
         name="upload",
         description="Upload an emoji.",
         usage=">upload [emoji name] [url]",
+        aliases=["steal"],
     )
     @commands.has_permissions(manage_emojis=True)
     async def upload(self, ctx, name, url: str = None, *, extra_args=""):
@@ -85,6 +90,7 @@ class Emoji(commands.Cog):
         :param url: [Optional] The URL for the emoji's image.
         :param extra_args: [Optional] If this is present, the command is too long and should error.
         """
+        # TODO: See if this code can be simplified
         # Too many arguments -- likely user tried a name like "my cool emoji" instead of "my_cool_emoji"
         if extra_args:
             raise Exception(
@@ -116,16 +122,53 @@ class Emoji(commands.Cog):
                     )
 
     @commands.command(
-        name="steal",
-        description="Upload an emoji from another server. Requires Nitro!",
-        usage=">steal [emoji]",
+        name="random",
+        description="Upload a random emoji.",
+        usage=">random",
     )
     @commands.has_permissions(manage_emojis=True)
-    async def steal(self, ctx, emoji):
+    async def random(self, ctx, search: str = None):
         """
-        Steal an emoji from another server.
+        Upload a random emoji from cache. Adding a search parameter will upload an emoji with the query in its name.
 
         :param ctx:
-        :param emoji: The emoji to steal. Must be a custom emoji.
+        :param search: [Optional] A search query that the emoji's name must contain.
         """
-        await self.upload(ctx, emoji)
+        if search:
+            # Make a list of emojis that match the search
+            search = search.lower()
+            emojis = [e for e in self.bot.emojis if search in e.name.lower()]
+        else:
+            emojis = self.bot.emojis
+
+        # Pick and upload a random emoji
+        emoji = choice(emojis)
+        await upload_emoji(ctx, emoji.name, emoji.url)
+
+    @commands.command(
+        name="emojify",
+        description="Convert a sentence to emojis.",
+        usage=">emojify [sentence]",
+    )
+    @commands.has_permissions(manage_emojis=True)
+    async def emojify(self, ctx, *, sentence):
+        """
+        Convert a sentence to emojis.
+
+        :param ctx:
+        :param sentence: The sentence to convert.
+        """
+        # Remove invalid characters
+        sanitised = sub(r"[^a-zA-Z0-9 *]*", "", sentence).lower()
+
+        emojis = []
+
+        # Convert each letter to an emoji
+        # TODO: Add support for numbers
+        for letter in sanitised:
+            if letter.isalpha():
+                emojis.append(":regional_indicator_%s:" % letter)
+            elif letter == " ":
+                emojis.append(":black_large_square:")
+
+        await ctx.send(" ".join(emojis))

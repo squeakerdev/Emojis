@@ -29,7 +29,6 @@ class Help(commands.Cog):
         :param command_name: The command name to look up.
         :return: The Command object of the command found.
         """
-
         command = self.bot.get_command(command_name)
 
         if not command:
@@ -50,7 +49,6 @@ class Help(commands.Cog):
         :param ctx:
         :param command_name: [Optional] The command name to look up.
         """
-
         # Get specific information on a command
         if command_name:
             command = await self.get_command_info(command_name)
