@@ -58,7 +58,7 @@ async def on_command_error(ctx, err) -> None:
     #    "Maximum number of emojis reached (50)"
     match = re.search(r"error code: (\d*)\): ", msg)
     if match:
-        msg = msg[match.span()[1]:]
+        msg = msg[match.span()[1] :]
 
     # Send the error to the user
     await send_error(ctx, msg)
@@ -93,7 +93,6 @@ async def on_guild_join(guild):
         "chat, so that you can use emojis from other servers without Nitro. If you have a similar bot, "
         "like NQN or Animated Emojis, they might conflict. You can change this behaviour with "
         "`>replace off`.",
-        colour=Colours.base,
     )
 
     embed.add_field(
@@ -150,9 +149,7 @@ async def on_ready():
 async def ping(ctx):
     current_shard = (ctx.guild.id >> 22) % bot.shard_count
     latency = str(round(bot.latencies[current_shard][1], 2)) + "ms"
-    embed = discord.Embed(
-        title="Pong :ping_pong: ", description=f"{latency}", colour=Colours.base
-    )
+    embed = discord.Embed(title="Pong :ping_pong: ", description=f"{latency}")
     await ctx.send(embed=embed)
 
 

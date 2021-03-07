@@ -18,3 +18,17 @@ class Colours:
     success = g = green = discord.Color(3066993)
     neutral = n = normal = base = discord.Color(16562199)
     warn = y = yellow = discord.Color(16707936)
+
+
+class ColouredEmbed(discord.Embed):
+    """ A Discord Embed with a default colour. """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+
+        if "colour" not in kwargs and "color" not in kwargs:
+            self.colour = Colours.base
+
+
+# Replace the default Embed with the customised one
+discord.Embed = ColouredEmbed
