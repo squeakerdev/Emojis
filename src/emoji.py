@@ -172,3 +172,11 @@ class Emoji(commands.Cog):
                 emojis.append(":black_large_square:")
 
         await ctx.send(" ".join(emojis))
+
+    @commands.command(
+        name="jumbo",
+        description="View an emoji in full size.",
+        usage=">jumbo [emoji]",
+    )
+    async def jumbo(self, ctx, emoji: discord.PartialEmoji):
+        await ctx.send(emoji.url)
