@@ -124,7 +124,7 @@ async def on_ready() -> None:
 
 @bot.command(name="ping")
 async def ping(ctx) -> None:
-    latency = str(round(bot.latency, 2)) + "ms"
+    latency = str(round(bot.latency * 1000, 2)) + "ms"
     embed = Embed(title="Pong :ping_pong: ", description=f"{latency}")
     await ctx.send(embed=embed)
 
