@@ -1,7 +1,7 @@
 from io import BytesIO
 from typing import *
-import aiosqlite as sqlite
 
+import motor.motor_asyncio
 from discord import Color, Embed, PartialEmoji, Emoji
 from discord.ext.commands import (
     Context,
@@ -14,7 +14,10 @@ from discord.ext.commands import (
 from requests import get
 
 # Prevent IDEs removing these imports -- they see them as not used
-DO_NOT_REMOVE = (Cog, command, has_permissions, sqlite)
+DO_NOT_REMOVE = (Cog, command, has_permissions)
+
+mg = motor.motor_asyncio.AsyncIOMotorClient("localhost", 27017)
+db = mg.emojis_rewrite
 
 
 class Emojis:
@@ -47,6 +50,14 @@ class ColouredEmbed(Embed):
 
 # Replace the default Embed with the customised one
 Embed = ColouredEmbed
+
+
+async def send_success(ctx, quote):
+    # TODO: document
+    await ctx.send(embed=Embed(
+        colour=Colours.success,
+        description="%s %s" % (Emojis.success, quote)
+    ))
 
 
 async def check_if_emoji(ctx, query: str) -> Union[PartialEmoji, None]:

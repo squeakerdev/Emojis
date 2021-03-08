@@ -7,27 +7,24 @@ def setup(bot):
     cog = Help(bot)
     bot.add_cog(cog)
 
-    # Do not remove -- required to show all commands in >help
-    cog.base_help_embed = cog.create_help_embed()
-
 
 class Help(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.base_help_embed = Embed()
 
-    def create_help_embed(self) -> Embed:
+    async def create_help_embed(self, ctx) -> Embed:
         """ Create the top-level help Embed (list of commands). """
         embed = Embed(title="Commands")
 
         # A list of cogs with an extra "Other" cog for uncategorised commands
-        cogs = list(self.bot.cogs).__add__(["Other"])
+        cogs = list(self.bot.cogs) + ["Other"]
 
         command_list = {cog: [] for cog in cogs}
 
         # Loop through each command and add it to the dictionary
         for cmd in self.bot.walk_commands():
-            cmd_usage = ">" + cmd.name
+            cmd_usage = ctx.prefix + cmd.name
 
             if cmd.cog is not None:
                 command_list[type(cmd.cog).__name__].append(cmd_usage)
@@ -49,12 +46,12 @@ class Help(Cog):
         :param command_name: The command name to look up.
         :return: The Command object of the command found.
         """
-        command_ = self.bot.get_command(command_name)
+        cmd = self.bot.get_command(command_name)
 
-        if not command_:
+        if not cmd:
             raise CommandNotFound("That command (`%s`) doesn't exist." % command_name)
 
-        return command_
+        return cmd
 
     @command(
         name="help", description="Get information on the bot.", usage=">help [command]"
@@ -80,4 +77,4 @@ class Help(Cog):
             await ctx.send(embed=embed)
         # Get a list of commands
         else:
-            await ctx.send(embed=self.base_help_embed)
+            await ctx.send(embed=await self.create_help_embed(ctx))

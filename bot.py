@@ -2,43 +2,21 @@ import asyncio
 from os import listdir
 from os.path import splitext
 
-from discord import Activity, ActivityType, Game
+from discord import Activity, ActivityType, Game, HTTPException
 from discord.ext.commands import (
-    AutoShardedBot,
     CommandNotFound,
     MissingRequiredArgument,
     CommandInvokeError,
+    AutoShardedBot,
 )
 
 from src.common.common import *
 
 
-async def init_db() -> None:
-    db = await sqlite.connect("bot.db")
-
-    try:
-        await db.execute("CREATE TABLE prefixes (guild_id INTEGER, prefix STRING)")
-    except sqlite.OperationalError as err:
-        print("Database existing, using that one.")
-    await db.close()
-
-
 async def get_prefix(client, message) -> str:
-    try:
-        guild = message.guild
-    except AttributeError:
-        guild = message
-    try:
-        async with sqlite.connect("bot.db") as db:
-            cursor = await db.cursor()
-            await cursor.execute("SELECT prefix FROM prefixes WHERE guild_id=?", [int(guild.id)])
-            results = await cursor.fetchall()
-            print(results)
-
-            for prefix in results:
-                return prefix
-    except:
-        return ">"
+    """ Get the prefix for a guild. """
+    result = await db.settings.find_one({"id": message.guild.id}, {"prefix": 1})
+    return result["prefix"] if result else ">"
 
 
 bot = AutoShardedBot(
@@ -46,8 +24,6 @@ bot = AutoShardedBot(
     case_insensitive=True,
     owner_ids=[554275447710548018, 686941073792303157],
 )
-
-bot.loop.create_task(init_db())
 
 
 @bot.event
@@ -66,9 +42,9 @@ async def on_command_error(ctx, err) -> None:
             "You're missing an argument (`%s`). Type `>help %s` for more info."
             % (err.param.name, ctx.command)
         )
-    elif isinstance(err, CommandInvokeError):
+    elif isinstance(err, CommandInvokeError) and isinstance(err, HTTPException):
         # Simplify HTTP errors
-        err = Exception(err.original.text)
+        err = Exception(getattr(err.original).text or str(err))  # noqa
 
     # Attempt to simplify error message
     msg = str(getattr(err, "__cause__") or err)
@@ -81,7 +57,7 @@ async def on_command_error(ctx, err) -> None:
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message) -> None:
     if message.content.startswith("<@!749301838859337799>"):
         prefix = get_prefix(bot, message)
         await message.channel.send(
@@ -95,7 +71,7 @@ async def on_message(message):
 
 
 @bot.event
-async def on_guild_join(guild):
+async def on_guild_join(guild) -> None:
     # Create the on-join Embed
     embed = Embed(
         title="Hi!",
@@ -123,7 +99,7 @@ async def on_guild_join(guild):
 
 
 @bot.event
-async def on_ready():
+async def on_ready() -> None:
     """
     Run setup stuff that only needs to happen once.
     """
@@ -147,13 +123,13 @@ async def on_ready():
 
 
 @bot.command(name="ping")
-async def ping(ctx):
+async def ping(ctx) -> None:
     latency = str(round(bot.latency, 2)) + "ms"
     embed = Embed(title="Pong :ping_pong: ", description=f"{latency}")
     await ctx.send(embed=embed)
 
 
-async def send_error(ctx, err: Union[str, Exception]):
+async def send_error(ctx, err: Union[str, Exception]) -> None:
     """
     Send an error to a specified channel.
 

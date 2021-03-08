@@ -24,7 +24,13 @@ class Fun(Cog):
         description="View an emoji in full size.",
         usage=">jumbo [emoji]",
     )
-    async def jumbo(self, ctx, emoji: PartialEmoji):
+    async def jumbo(self, ctx, emoji: PartialEmoji) -> None:
+        """
+        View an emoji in full size. Posts the URL to the chat.
+
+        :param ctx:
+        :param emoji: The emoji to show.
+        """
         await ctx.send(emoji.url)
 
     @command(
@@ -32,7 +38,7 @@ class Fun(Cog):
         description="Convert a sentence to emojis.",
         usage=">emojify [sentence]",
     )
-    async def emojify(self, ctx, *, sentence):
+    async def emojify(self, ctx, *, sentence) -> None:
         """
         Convert a sentence to emojis.
 
@@ -65,7 +71,7 @@ class Fun(Cog):
         usage=">random",
     )
     @has_permissions(manage_emojis=True)
-    async def random(self, ctx, search: str = None):
+    async def random(self, ctx, search: str = None) -> None:
         """
         Upload a random emoji from cache. Adding a search parameter will upload an emoji with the query in its name.
 
