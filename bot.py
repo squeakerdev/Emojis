@@ -1,43 +1,29 @@
 import asyncio
-import re
+from os import listdir
+from os.path import splitext
 
-import aiosqlite as sqlite
-import discord.ext.commands as commands
+from discord import Activity, ActivityType, Game, HTTPException
+from discord.ext.commands import (
+    CommandNotFound,
+    MissingRequiredArgument,
+    CommandInvokeError,
+    AutoShardedBot,
+)
 
-from src.common import *
-
-
-async def init_db() -> None:
-    db = await sqlite.connect("bot.db")
-
-    try:
-        await db.execute("CREATE TABLE prefixes (guild_id INTEGER, prefix STRING)")
-    except sqlite.OperationalError as err:
-        print("Database existing, using that one.")
-    await db.close()
+from src.common.common import *
 
 
 async def get_prefix(client, message) -> str:
-    try:
-        guild = message.guild
-    except AttributeError:
-        guild = message
-    try:
-        db = await sqlite.connect("bot.db")
-        await db.execute("SELECT prefix FROM prefixes WHERE guild_id=?", guild.id)
-        result = await db.fetchall()
-        await db.close()
-    except:
-        return ">"
+    """ Get the prefix for a guild. """
+    result = await db.settings.find_one({"id": message.guild.id}, {"prefix": 1})
+    return result["prefix"] if result else ">"
 
 
-bot = commands.AutoShardedBot(
+bot = AutoShardedBot(
     command_prefix=get_prefix,
     case_insensitive=True,
-    owner_ids=[686941073792303157686941073792303157],
+    owner_ids=[554275447710548018, 686941073792303157],
 )
-
-bot.loop.create_task(init_db())
 
 
 @bot.event
@@ -48,28 +34,30 @@ async def on_command_error(ctx, err) -> None:
     :param ctx:
     :param err: The error thrown.
     """
+    if isinstance(err, CommandNotFound):
+        return  # Ignore
+    elif isinstance(err, MissingRequiredArgument):
+        # Make missing argument errors clearer
+        err = Exception(
+            "You're missing an argument (`%s`). Type `>help %s` for more info."
+            % (err.param.name, ctx.command)
+        )
+    elif isinstance(err, CommandInvokeError) and isinstance(err, HTTPException):
+        # Simplify HTTP errors
+        err = Exception(getattr(err.original).text or str(err))  # noqa
+
     # Attempt to simplify error message
     msg = str(getattr(err, "__cause__") or err)
-
-    # Simplify HTTP errors
-    # Example:
-    #    "400 Bad Request (error code: 30008): Maximum number of emojis reached (50)"
-    #    becomes:
-    #    "Maximum number of emojis reached (50)"
-    match = re.search(r"error code: (\d*)\): ", msg)
-    if match:
-        msg = msg[match.span()[1] :]
 
     # Send the error to the user
     await send_error(ctx, msg)
 
     # For development purposes, so the error can be seen in console
-    # This shows the full error, not the simplified version
     raise err
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message) -> None:
     if message.content.startswith("<@!749301838859337799>"):
         prefix = get_prefix(bot, message)
         await message.channel.send(
@@ -83,9 +71,9 @@ async def on_message(message):
 
 
 @bot.event
-async def on_guild_join(guild):
+async def on_guild_join(guild) -> None:
     # Create the on-join Embed
-    embed = discord.Embed(
+    embed = Embed(
         title="Hi!",
         description=f"I'm Emojis: a bot to easily manage your "
         "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!",
@@ -111,12 +99,12 @@ async def on_guild_join(guild):
 
 
 @bot.event
-async def on_ready():
+async def on_ready() -> None:
     """
     Run setup stuff that only needs to happen once.
     """
 
-    await bot.change_presence(activity=discord.Game(name="just updated!"))
+    await bot.change_presence(activity=Game(name="just updated!"))
 
     print("Serving {} guilds".format(len(bot.guilds)))
 
@@ -124,9 +112,9 @@ async def on_ready():
         try:
             await asyncio.sleep(20)
             await bot.change_presence(
-                activity=discord.Activity(
+                activity=Activity(
                     name=f"{len(bot.guilds)} servers | >help",
-                    type=discord.ActivityType.watching,
+                    type=ActivityType.watching,
                 )
             )
 
@@ -135,14 +123,13 @@ async def on_ready():
 
 
 @bot.command(name="ping")
-async def ping(ctx):
-    current_shard = (ctx.guild.id >> 22) % bot.shard_count
-    latency = str(round(bot.latencies[current_shard][1], 2)) + "ms"
-    embed = discord.Embed(title="Pong :ping_pong: ", description=f"{latency}")
+async def ping(ctx) -> None:
+    latency = str(round(bot.latency * 1000, 2)) + "ms"
+    embed = Embed(title="Pong :ping_pong: ", description=f"{latency}")
     await ctx.send(embed=embed)
 
 
-async def send_error(ctx, err: Union[str, Exception]):
+async def send_error(ctx, err: Union[str, Exception]) -> None:
     """
     Send an error to a specified channel.
 
@@ -151,7 +138,7 @@ async def send_error(ctx, err: Union[str, Exception]):
     """
 
     await ctx.send(
-        embed=discord.Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
+        embed=Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
     )
 
 
@@ -159,10 +146,12 @@ if __name__ == "__main__":
     # Remove the default help command so a better one can be added
     bot.remove_command("help")
 
-    # Load cogs -- new cogs must be added manually to this list
-    # Always load help.py last so that the command list is up-tp-date
-    for cog in ("src.emoji", "src.help"):
-        bot.load_extension(cog)
+    # Load cogs
+    # Ignores files starting with "_", like __init__.py
+    for cog in listdir("./src/exts/"):
+        if not cog.startswith("_"):
+            file_name, file_extension = splitext(cog)
+            bot.load_extension("src.exts.%s" % file_name)
 
     # Code written after this block may not run
     with open("./data/token.txt", "r") as token:
