@@ -1,3 +1,5 @@
 *__pycache__
 *bot.db
 token.txt
+*token.txt
+./data/token.txt
