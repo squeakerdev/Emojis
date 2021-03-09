@@ -35,10 +35,11 @@ class Help(Cog):
 
         # Add each cog's commands to the embed as a new field
         for name, commands in command_list.items():
-            embed.add_field(
-                name=name,
-                value="```\n%s\n```" % "\n".join(sorted(commands)),  # Code block
-            )
+            if commands:
+                embed.add_field(
+                    name=name,
+                    value="```\n%s\n```" % "\n".join(sorted(commands)),  # Code block
+                )
 
         return embed
 
@@ -57,7 +58,10 @@ class Help(Cog):
         return cmd
 
     @command(
-        name="help", description="Get information on the bot.", usage=">help [command]"
+        name="help",
+        description="Get information on the bot.",
+        usage=">help [command]",
+        aliases=("commands",),
     )
     async def help(self, ctx, command_name=None):
         """
@@ -69,15 +73,34 @@ class Help(Cog):
         """
         # Get specific information on a command
         if command_name:
-            command_ = await self.get_command_info(command_name)
+            cmd = await self.get_command_info(command_name)
 
             embed = (
                 Embed(title=command_name.lower())
-                .add_field(name="Description", value=command_.description or "None")
-                .add_field(name="Usage", value="`%s`" % command_.usage or "None")
+                .add_field(name="Description", value=cmd.description or "None")
+                .add_field(name="Usage", value="`%s`" % cmd.usage or "None")
+                .add_field(
+                    name="Aliases",
+                    value="`%s`" % "`, `".join(cmd.aliases) if cmd.aliases else "None",
+                )
             )
 
             await ctx.send(embed=embed)
         # Get a list of commands
         else:
             await ctx.send(embed=await self.create_help_embed(ctx))
+
+    @command(
+        name="about",
+        description="What the hell is this bot?",
+        usage=">about",
+        aliases=("what",),
+    )
+    async def about(self, ctx) -> None:
+        await ctx.send(
+            embed=Embed(
+                description="Emojis is an emoji management bot. It's designed to make it easier for you to manage,"
+                " find, and create emojis.\n\n We recently rewrote the entirety of the bot to improve its performance "
+                "and maintainability, so you might encounter some bugs."
+            )
+        )

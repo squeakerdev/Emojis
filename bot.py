@@ -61,15 +61,16 @@ async def on_command_error(ctx, err) -> None:
 
 @bot.event
 async def on_message(message) -> None:
+    """ Post this guild's bot prefix if the user pings the bot. """
+
+    # Post prefix
     if message.content.startswith("<@!749301838859337799>"):
-        prefix = get_prefix(bot, message)
+        prefix = await get_prefix(bot, message)
         await message.channel.send(
-            f"{message.author.mention}, this server's prefix is `{prefix}`. Try `{prefix}help`"
-            f" to get started."
+            "%s This server's prefix is `%s`." % (message.author.mention, prefix)
         )
 
-    # message = await replace_unparsed_emojis(message)
-
+    # Continue processing message
     await bot.process_commands(message)
 
 
@@ -123,13 +124,6 @@ async def on_ready() -> None:
 
         except Exception as err:
             print("Failed to change presence:", err)
-
-
-@bot.command(name="ping")
-async def ping(ctx) -> None:
-    latency = str(round(bot.latency * 1000, 2)) + "ms"
-    embed = Embed(title="Pong :ping_pong: ", description=f"{latency}")
-    await ctx.send(embed=embed)
 
 
 async def send_error(ctx, err: Union[str, Exception]) -> None:

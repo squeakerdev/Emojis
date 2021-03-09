@@ -181,6 +181,55 @@ class Utility(Cog):
         # Function is recursive
         await browse(emojis=search_results, page=page_count)
 
+    @command(
+        name="link",
+        description="Get an emoji's URL.",
+        usage=">link [emoji]",
+        aliases=("url",),
+    )
+    async def link(self, ctx, emoji: PartialEmoji) -> None:
+        """
+        Get an emoji's URL.. Posts the URL to the chat.
+
+        :param ctx:
+        :param emoji: The emoji to show.
+        """
+        await ctx.send("<%s>" % emoji.url)
+
+    @command(
+        name="info",
+        description="Get information on an emoji.",
+        usage=">info [emoji]",
+        aliases=("?", "details"),
+    )
+    @cooldown(1, 5, BucketType.user)
+    async def info(self, ctx, emoji: PartialEmoji):
+        """
+        Get information on an emoji from the current server.
+
+        :param ctx:
+        :param emoji: The emoji to get information on. Must be a custom emoji from the current server.
+        """
+
+        # Required to get user who made emoji
+        try:
+            emoji = await ctx.guild.fetch_emoji(emoji.id)
+        except Exception:
+            raise Exception(
+                f"Can't find that emoji. Make sure it's from *this* server."
+            )
+
+        await ctx.send(
+            embed=Embed(title=emoji.name)
+            .set_thumbnail(url=emoji.url)
+            .add_field(name="ID", value=emoji.id)
+            .add_field(name="Usage", value=f"`:%s:`" % emoji.name)
+            .add_field(name="Created at", value=emoji.created_at)
+            .add_field(name="Created by", value=emoji.user)
+            .add_field(name="URL", value=f"[Link](%s)" % emoji.url)
+            .add_field(name="Animated", value=emoji.animated)
+        )
+
 
 def setup(bot):
     bot.add_cog(Utility(bot))

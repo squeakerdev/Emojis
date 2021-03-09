@@ -91,6 +91,34 @@ class Fun(Cog):
         emoji = choice(emojis)
         await upload_emoji(ctx, emoji.name, emoji.url)
 
+    @command(
+        name="clap",
+        description="👏YOUR👏MESSAGE👏HERE👏",
+        usage=">clap [message]",
+        aliases=("👏",),
+        pass_context=True,
+    )
+    async def clap(self, ctx, *, args):
+        """
+        Replace spaces with the clap emoji.
+
+        :param ctx:
+        :param args: The sentence to clap-ify.
+        """
+
+        if not args:
+            raise Exception("You need to submit a message.")
+
+        clapped = "👏" + "👏".join(args.split()) + "👏"
+
+        if len(clapped) > 2000:
+            raise Exception(
+                "Your message needs to be shorter than 2000 characters (current length: %d)."
+                % len(clapped)
+            )
+
+        await ctx.send(clapped)
+
 
 def setup(bot):
     bot.add_cog(Fun(bot))
