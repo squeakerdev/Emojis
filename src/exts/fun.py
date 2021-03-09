@@ -16,6 +16,8 @@ async def get_emojis_webhook(ctx: Context) -> Webhook:
 
 
 class Fun(Cog):
+    __slots__ = ["bot"]
+
     def __init__(self, bot):
         self.bot = bot
 

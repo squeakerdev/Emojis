@@ -9,6 +9,8 @@ def setup(bot):
 
 
 class Help(Cog):
+    __slots__ = ["bot"]
+
     def __init__(self, bot):
         self.bot = bot
         self.base_help_embed = Embed()
@@ -34,8 +36,9 @@ class Help(Cog):
         # Add each cog's commands to the embed as a new field
         for name, commands in command_list.items():
             embed.add_field(
-                name=name, value="```\n%s\n```" % "\n".join(sorted(commands))
-            )  # Code block
+                name=name,
+                value="```\n%s\n```" % "\n".join(sorted(commands)),  # Code block
+            )
 
         return embed
 

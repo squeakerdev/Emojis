@@ -16,6 +16,7 @@ from requests import get
 # Prevent IDEs removing these imports -- they see them as not used
 DO_NOT_REMOVE = (Cog, command, has_permissions)
 
+# Set up database
 mg = motor.motor_asyncio.AsyncIOMotorClient("localhost", 27017)
 db = mg.emojis_rewrite
 
@@ -54,10 +55,11 @@ Embed = ColouredEmbed
 
 async def send_success(ctx, quote):
     # TODO: document
-    await ctx.send(embed=Embed(
-        colour=Colours.success,
-        description="%s %s" % (Emojis.success, quote)
-    ))
+    await ctx.send(
+        embed=Embed(
+            colour=Colours.success, description="%s %s" % (Emojis.success, quote)
+        )
+    )
 
 
 async def check_if_emoji(ctx, query: str) -> Union[PartialEmoji, None]:

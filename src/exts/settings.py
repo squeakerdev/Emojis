@@ -6,6 +6,8 @@ def setup(bot):
 
 
 class Settings(Cog):
+    __slots__ = ["bot"]
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -22,7 +24,6 @@ class Settings(Cog):
         :param ctx:
         :param prefix: The new prefix.
         """
-
         await db.settings.update_one(
             {"id": ctx.guild.id}, {"$set": {"prefix": prefix}}, upsert=True
         )

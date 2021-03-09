@@ -42,9 +42,12 @@ async def on_command_error(ctx, err) -> None:
             "You're missing an argument (`%s`). Type `>help %s` for more info."
             % (err.param.name, ctx.command)
         )
-    elif isinstance(err, CommandInvokeError) and isinstance(err, HTTPException):
-        # Simplify HTTP errors
-        err = Exception(getattr(err.original).text or str(err))  # noqa
+    elif isinstance(err, CommandInvokeError):
+        # Try to simplify HTTP errors
+        try:
+            err = Exception(getattr(err, "original").text or str(err))  # noqa
+        except AttributeError:
+            pass
 
     # Attempt to simplify error message
     msg = str(getattr(err, "__cause__") or err)
