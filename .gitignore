@@ -1,9 +1,9 @@
 *__pycache__
 *bot.db
-token.txt
-*token.txt
+*emojis.zip
+./date/packs/*/
 ./data/token.txt
-.data/
+./data/botsggtoken.txt
 .idea/.gitignore
 .idea/dataSources.xml
 .idea/dataSources/
@@ -14,4 +14,3 @@ token.txt
 .idea/modules.xml
 .idea/sqldialects.xml
 .idea/vcs.xml
-/data/

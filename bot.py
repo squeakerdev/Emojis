@@ -1,6 +1,8 @@
 import asyncio
+import os
 from os import listdir
 from os.path import splitext
+from zipfile import ZipFile
 
 from discord import Activity, ActivityType, Game, HTTPException
 from discord.ext.commands import (

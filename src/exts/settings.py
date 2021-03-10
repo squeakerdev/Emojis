@@ -1,10 +1,6 @@
 from src.common.common import *
 
 
-def setup(bot):
-    bot.add_cog(Settings(bot))
-
-
 class Settings(Cog):
     __slots__ = ["bot"]
 
@@ -34,3 +30,7 @@ class Settings(Cog):
                 description="%s Your prefix is now `%s`." % (Emojis.success, prefix),
             )
         )
+
+
+def setup(bot):
+    bot.add_cog(Settings(bot))

@@ -1,8 +1,8 @@
+from asyncio import TimeoutError as TimeoutError_
 from random import randint
 from re import sub
 
-import asyncio
-from discord import Member, User, Message
+from discord import Member, User, Message, NotFound
 from discord.ext.commands import cooldown, BucketType
 
 from src.common.common import *
@@ -13,12 +13,27 @@ class Utility(Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.packs = get("https://discordemoji.com/api/packs").json()
+        self.packs_embed = self.list_packs()
+
+    def list_packs(self) -> Embed:
+        """ A list of emoji packs from emoji.gg that can be downloaded. """
+
+        list_embed = Embed(
+            title=f"{len(self.packs)} emoji packs available",
+            description="Type `>pack [number]` to view (example: `>pack 1`)\n",
+        )
+
+        for count, value in enumerate(self.packs, start=1):
+            list_embed.description += '\n`>pack %d` -- view **"%s"**' % (count, value["name"])
+
+        return list_embed
 
     @command(
         name="upload",
         description="Upload an emoji.",
         usage=">upload [emoji name] [url]",
-        aliases=["steal"],
+        aliases=("steal",),
     )
     @has_permissions(manage_emojis=True)
     async def upload(self, ctx, name, url: str = None, *, extra_args="") -> None:
@@ -93,10 +108,22 @@ class Utility(Cog):
 
         await upload_emoji(ctx, name, user.avatar_url)
 
-    @command(name="search", description="Search for an emoji.", usage=">search [query]")
+    @command(
+        name="search",
+        description="Search for an emoji.",
+        usage=">search [query]",
+        aliases=("browse", "find"),
+    )
     @has_permissions(manage_emojis=True)
     @cooldown(1, 30, BucketType.user)
-    async def search(self, ctx, query, page_count=0):
+    async def search(self, ctx, query):
+        """
+        Search the bot cache for emojis.
+
+        :param ctx:
+        :param query: The search term that emoji names must contain.
+        """
+
         def check(reaction) -> bool:
             """ Check if the reaction added is valid. """
             return reaction.member.id == ctx.author.id
@@ -140,7 +167,7 @@ class Utility(Cog):
                 reaction = await self.bot.wait_for(
                     "raw_reaction_add", timeout=30.0, check=check
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError_:  # asyncio.TimeoutError
                 await sent_msg.edit(
                     embed=Embed(
                         colour=Colours.error,
@@ -179,7 +206,7 @@ class Utility(Cog):
 
         # Start browsing
         # Function is recursive
-        await browse(emojis=search_results, page=page_count)
+        await browse(emojis=search_results, page=0)
 
     @command(
         name="link",
@@ -214,7 +241,7 @@ class Utility(Cog):
         # Required to get user who made emoji
         try:
             emoji = await ctx.guild.fetch_emoji(emoji.id)
-        except Exception:
+        except NotFound:
             raise Exception(
                 f"Can't find that emoji. Make sure it's from *this* server."
             )
@@ -229,6 +256,42 @@ class Utility(Cog):
             .add_field(name="URL", value=f"[Link](%s)" % emoji.url)
             .add_field(name="Animated", value=emoji.animated)
         )
+
+    @command(
+        name="pack",
+        description="View an emoji pack. Use `>pack` first!",
+        usage=">pack [number]",
+        aliases=("packs",),
+    )
+    async def pack(self, ctx, pack_number: int = None):
+        """
+        View a specific emoji pack as listed by >packs.
+
+        :param ctx:
+        :param pack_number: The pack to view.
+        """
+
+        if not pack_number:
+            await ctx.send(embed=self.packs_embed)
+            return
+
+        # Pack does not exist
+        try:
+            pack = self.packs[pack_number - 1]
+        except IndexError:
+            raise Exception(
+                "That's not a valid pack. Use `>packs` to see a list of available packs."
+            )
+
+        # fields
+        embed = (
+            Embed(title=pack["name"], description=pack["description"])
+                .add_field(name="Download", value=pack['download'])
+                .set_image(url=pack["image"])
+        )
+
+        # send
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
