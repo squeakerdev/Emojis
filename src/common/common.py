@@ -2,7 +2,8 @@ from io import BytesIO
 from typing import *
 
 import motor.motor_asyncio
-from discord import Color, Embed, PartialEmoji, Emoji
+from discord import Color, Embed, PartialEmoji, Emoji, Webhook
+from discord.utils import get as discord_get
 from discord.ext.commands import (
     Context,
     BadArgument,
@@ -114,3 +115,11 @@ async def upload_emoji(
         )
 
     return new_emoji
+
+
+async def get_emojis_webhook(ctx: Context) -> Webhook:
+    """ Find the Emojis webhook, or create it if it doesn't exist. """
+    webhooks = await ctx.channel.webhooks()
+    emojis_webhook = discord_get(webhooks, name="Emojis")
+
+    return emojis_webhook or await ctx.channel.create_webhook(name="Emojis")

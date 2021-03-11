@@ -1,3 +1,4 @@
+import logging
 from asyncio import TimeoutError as TimeoutError_
 from random import randint
 from re import sub
@@ -25,7 +26,10 @@ class Utility(Cog):
         )
 
         for count, value in enumerate(self.packs, start=1):
-            list_embed.description += '\n`>pack %d` -- view **"%s"**' % (count, value["name"])
+            list_embed.description += '\n`>pack %d` -- view **"%s"**' % (
+                count,
+                value["name"],
+            )
 
         return list_embed
 
@@ -140,7 +144,7 @@ class Utility(Cog):
 
             # Pick the Emoji and create the search Embed
             emoji = emojis[page]
-            embed_ = (
+            embed = (
                 Embed(
                     title="Page %s / %s" % (page + 1, len(emojis)),
                     description="`:%s:`" % emoji.name,
@@ -151,7 +155,7 @@ class Utility(Cog):
 
             # If no message exists, send the Embed to the chat
             if not existing_msg:
-                sent_msg = await ctx.send(embed=embed_)
+                sent_msg = await ctx.send(embed=embed)
 
                 for reaction in ("⬅", "👍", "➡", "🔀"):
                     await sent_msg.add_reaction(reaction)
@@ -159,7 +163,7 @@ class Utility(Cog):
             # If a message does exist, edit it with the new Embed
             else:
                 sent_msg = existing_msg
-                await sent_msg.edit(embed=embed_)
+                await sent_msg.edit(embed=embed)
 
             try:
                 # Wait for a reaction to be added
@@ -286,8 +290,8 @@ class Utility(Cog):
         # fields
         embed = (
             Embed(title=pack["name"], description=pack["description"])
-                .add_field(name="Download", value=pack['download'])
-                .set_image(url=pack["image"])
+            .add_field(name="Download", value=pack["download"])
+            .set_image(url=pack["image"])
         )
 
         # send

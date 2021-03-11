@@ -1,15 +1,15 @@
 import asyncio
-import os
 from os import listdir
 from os.path import splitext
-from zipfile import ZipFile
-
-from discord import Activity, ActivityType, Game, HTTPException
+from re import search
+import logging
+from discord import Activity, ActivityType, Game, Message
 from discord.ext.commands import (
     CommandNotFound,
     MissingRequiredArgument,
     CommandInvokeError,
     AutoShardedBot,
+    EmojiConverter,
 )
 
 from src.common.common import *
@@ -72,6 +72,9 @@ async def on_message(message) -> None:
             "%s This server's prefix is `%s`." % (message.author.mention, prefix)
         )
 
+    # Replace unparsed :emojis:, NQN-style
+    await replace_unparsed_emojis(message)
+
     # Continue processing message
     await bot.process_commands(message)
 
@@ -104,6 +107,20 @@ async def on_guild_join(guild) -> None:
         await channel.create_webhook(name="Emojis")
 
 
+def run_once(func):
+    """ Make sure a function only runs once. """
+    # Used for on_ready since it may run multiple times, e.g. if disconnected from Discord
+
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+
+            return func(*args, **kwargs)
+
+    wrapper.has_run = False
+    return wrapper
+
+
 @bot.event
 async def on_ready() -> None:
     """
@@ -111,7 +128,11 @@ async def on_ready() -> None:
     """
 
     await bot.change_presence(activity=Game(name="just updated!"))
+    await begin_updating_presence()
 
+
+@run_once
+async def begin_updating_presence():
     print("Serving {} guilds".format(len(bot.guilds)))
 
     while 1:
@@ -139,6 +160,44 @@ async def send_error(ctx, err: Union[str, Exception]) -> None:
     await ctx.send(
         embed=Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
     )
+
+
+async def replace_unparsed_emojis(message: Message):
+    """ Replace unparsed ':emojis:' in a message, to simulate Discord Nitro. Sends the modified message on a Webhook
+    that looks like the user. """
+
+    if not message.author.bot:
+        # Check for :emojis:
+        match = bool(search(r":[a-zA-Z0-9_-]+:", message.content))
+
+        if match:
+            ctx = await bot.get_context(message)
+            message_split = message.content.split()
+
+            # Loop through every word and try to make it an emoji
+            for i in range(len(message_split)):
+                word = message_split[i]
+
+                # Matches unparsed emojis
+                if search(r":[a-zA-Z0-9_-]+:", word):
+                    try:
+                        # Convert to Emoji
+                        found_emoji = await EmojiConverter().convert(
+                            ctx, word.replace(":", "")
+                        )
+                        message_split[i] = str(found_emoji)
+                    except BadArgument:
+                        pass
+
+            if message_split != message.content.split():
+                # Find the bot's Webhook and send the message on it
+                webhook = await get_emojis_webhook(ctx)
+
+                await webhook.send(
+                    " ".join(message_split),
+                    username=message.author.display_name,
+                    avatar_url=message.author.avatar_url,
+                )
 
 
 if __name__ == "__main__":

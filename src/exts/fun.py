@@ -1,18 +1,7 @@
 from random import choice
 from re import sub
 
-from discord import Webhook
-from discord.utils import get as discord_get
-
 from src.common.common import *
-
-
-async def get_emojis_webhook(ctx: Context) -> Webhook:
-    """ Find the Emojis webhook, or create it if it doesn't exist. """
-    webhooks = await ctx.channel.webhooks()
-    emojis_webhook = discord_get(webhooks, name="Emojis")
-
-    return emojis_webhook or await ctx.channel.create_webhook(name="Emojis")
 
 
 class Fun(Cog):
