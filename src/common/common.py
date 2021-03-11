@@ -10,12 +10,14 @@ from discord.ext.commands import (
     PartialEmojiConverter,
     Cog,
     command,
-    has_permissions,
+    has_permissions, CheckFailure, check, guild_only
 )
 from requests import get
 
 # Prevent IDEs removing these imports -- they see them as not used
 DO_NOT_REMOVE = (Cog, command, has_permissions)
+
+DEFAULT_PREFIX = ">"
 
 # Set up database
 mg = motor.motor_asyncio.AsyncIOMotorClient("localhost", 27017)

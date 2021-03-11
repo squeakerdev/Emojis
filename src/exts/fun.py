@@ -29,6 +29,7 @@ class Fun(Cog):
         description="Convert a sentence to emojis.",
         usage=">emojify [sentence]",
     )
+    @guild_only()
     async def emojify(self, ctx, *, sentence) -> None:
         """
         Convert a sentence to emojis.
@@ -61,6 +62,7 @@ class Fun(Cog):
         description="Upload a random emoji.",
         usage=">random",
     )
+    @guild_only()
     @has_permissions(manage_emojis=True)
     async def random(self, ctx, search: str = None) -> None:
         """

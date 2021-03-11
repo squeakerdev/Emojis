@@ -39,6 +39,7 @@ class Utility(Cog):
         usage=">upload [emoji name] [url]",
         aliases=("steal",),
     )
+    @guild_only()
     @has_permissions(manage_emojis=True)
     async def upload(self, ctx, name, url: str = None, *, extra_args="") -> None:
         """
@@ -95,6 +96,7 @@ class Utility(Cog):
             "pic",
         ),
     )
+    @guild_only()
     @has_permissions(manage_emojis=True)
     async def pfp(self, ctx, user: Union[Member, User] = None) -> None:
         """
@@ -118,6 +120,7 @@ class Utility(Cog):
         usage=">search [query]",
         aliases=("browse", "find"),
     )
+    @guild_only()
     @has_permissions(manage_emojis=True)
     @cooldown(1, 30, BucketType.user)
     async def search(self, ctx, query):
@@ -128,7 +131,7 @@ class Utility(Cog):
         :param query: The search term that emoji names must contain.
         """
 
-        def check(reaction) -> bool:
+        def reaction_check(reaction) -> bool:
             """ Check if the reaction added is valid. """
             return reaction.member.id == ctx.author.id
 
@@ -169,7 +172,7 @@ class Utility(Cog):
                 # Wait for a reaction to be added
                 # Times out after 30 seconds and must be a valid emoji (⬅/👍/➡/🔀)
                 reaction = await self.bot.wait_for(
-                    "raw_reaction_add", timeout=30.0, check=check
+                    "raw_reaction_add", timeout=30.0, check=reaction_check
                 )
             except TimeoutError_:  # asyncio.TimeoutError
                 await sent_msg.edit(
@@ -233,6 +236,7 @@ class Utility(Cog):
         usage=">info [emoji]",
         aliases=("?", "details"),
     )
+    @guild_only()
     @cooldown(1, 5, BucketType.user)
     async def info(self, ctx, emoji: PartialEmoji):
         """

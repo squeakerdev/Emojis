@@ -2,8 +2,8 @@ import asyncio
 from os import listdir
 from os.path import splitext
 from re import search
-import logging
-from discord import Activity, ActivityType, Game, Message
+
+from discord import Activity, ActivityType, Game, Message, Intents
 from discord.ext.commands import (
     CommandNotFound,
     MissingRequiredArgument,
@@ -17,14 +17,20 @@ from src.common.common import *
 
 async def get_prefix(client, message) -> str:
     """ Get the prefix for a guild. """
+    # Private channel
+    if not message.guild:
+        return DEFAULT_PREFIX
+
+    # Guild
     result = await db.settings.find_one({"id": message.guild.id}, {"prefix": 1})
-    return result["prefix"] if result else ">"
+    return result["prefix"] if result else DEFAULT_PREFIX
 
 
 bot = AutoShardedBot(
     command_prefix=get_prefix,
     case_insensitive=True,
     owner_ids=[554275447710548018, 686941073792303157],
+    intents=Intents.default(),
 )
 
 
@@ -72,11 +78,11 @@ async def on_message(message) -> None:
             "%s This server's prefix is `%s`." % (message.author.mention, prefix)
         )
 
-    # Replace unparsed :emojis:, NQN-style
-    await replace_unparsed_emojis(message)
-
     # Continue processing message
     await bot.process_commands(message)
+
+    # Replace unparsed :emojis:, NQN-style
+    await replace_unparsed_emojis(message)
 
 
 @bot.event
@@ -165,6 +171,7 @@ async def send_error(ctx, err: Union[str, Exception]) -> None:
 async def replace_unparsed_emojis(message: Message):
     """ Replace unparsed ':emojis:' in a message, to simulate Discord Nitro. Sends the modified message on a Webhook
     that looks like the user. """
+    has_updated = False
 
     if not message.author.bot:
         # Check for :emojis:
@@ -185,11 +192,13 @@ async def replace_unparsed_emojis(message: Message):
                         found_emoji = await EmojiConverter().convert(
                             ctx, word.replace(":", "")
                         )
+
                         message_split[i] = str(found_emoji)
-                    except BadArgument:
+                        has_updated = True
+                    except BadArgument as e:
                         pass
 
-            if message_split != message.content.split():
+            if has_updated:
                 # Find the bot's Webhook and send the message on it
                 webhook = await get_emojis_webhook(ctx)
 
@@ -198,6 +207,8 @@ async def replace_unparsed_emojis(message: Message):
                     username=message.author.display_name,
                     avatar_url=message.author.avatar_url,
                 )
+
+                await message.delete()
 
 
 if __name__ == "__main__":

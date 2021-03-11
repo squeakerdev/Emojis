@@ -1,0 +1,4 @@
+discord~=1.0.1
+asyncio~=3.4.3
+motor~=2.3.1
+requests~=2.25.0

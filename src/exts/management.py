@@ -14,6 +14,7 @@ class Management(Cog):
         description="Rename an emoji.",
         usage=">rename [emoji] [new name]",
     )
+    @guild_only()
     @has_permissions(manage_emojis=True)
     async def rename(self, ctx, emoji: Emoji, *, new_name) -> None:
         """
