@@ -1,9 +1,10 @@
 import asyncio
+import logging
 from os import listdir
 from os.path import splitext
 from re import search
 
-from discord import Activity, ActivityType, Game, Message, Intents
+from discord import Activity, ActivityType, Message, Intents, AllowedMentions
 from discord.ext.commands import (
     CommandNotFound,
     MissingRequiredArgument,
@@ -14,204 +15,159 @@ from discord.ext.commands import (
 
 from src.common.common import *
 
+log = logging.Logger(__name__)
 
-async def get_prefix(client, message) -> str:
-    """ Get the prefix for a guild. """
-    # Private channel
-    if not message.guild:
-        return DEFAULT_PREFIX
-
-    # Guild
-    result = await db.settings.find_one({"id": message.guild.id}, {"prefix": 1})
-    return result["prefix"] if result else DEFAULT_PREFIX
-
-
-bot = AutoShardedBot(
-    command_prefix=get_prefix,
-    case_insensitive=True,
-    owner_ids=[554275447710548018, 686941073792303157],
-    intents=Intents.default(),
+welcome = (
+    "Thanks for inviting Emojis. My prefix is `>`.\n\n"
+    "%s **Important: [Click here to get started](https://rubys.tech/emojis/setup)**."
+    % Emojis.warning
 )
 
 
-@bot.event
-async def on_command_error(ctx, err) -> None:
-    """
-    Catch and handle errors thrown by the bot.
+class Emojis(AutoShardedBot):
+    def __init__(self):
+        # Make sure the bot can't be abused to mass ping
+        allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
-    :param ctx:
-    :param err: The error thrown.
-    """
-    if isinstance(err, CommandNotFound):
-        return  # Ignore
-    elif isinstance(err, MissingRequiredArgument):
-        # Make missing argument errors clearer
-        err = Exception(
-            "You're missing an argument (`%s`). Type `>help %s` for more info."
-            % (err.param.name, ctx.command)
-        )
-    elif isinstance(err, CommandInvokeError):
-        # Try to simplify HTTP errors
-        try:
-            err = Exception(getattr(err, "original").text or str(err))  # noqa
-        except AttributeError:
-            pass
-
-    # Attempt to simplify error message
-    msg = str(getattr(err, "__cause__") or err)
-
-    # Send the error to the user
-    await send_error(ctx, msg)
-
-    # For development purposes, so the error can be seen in console
-    raise err
-
-
-@bot.event
-async def on_message(message) -> None:
-    """ Post this guild's bot prefix if the user pings the bot. """
-
-    # Post prefix
-    if message.content.startswith("<@!749301838859337799>"):
-        prefix = await get_prefix(bot, message)
-        await message.channel.send(
-            "%s This server's prefix is `%s`." % (message.author.mention, prefix)
+        # Minimum required
+        intents = Intents(
+            guilds=True, members=True, emojis=True, messages=True, reactions=True
         )
 
-    # Continue processing message
-    await bot.process_commands(message)
+        super().__init__(
+            command_prefix=">",
+            description="An emoji management bot.",
+            pm_help=None,
+            fetch_offline_members=False,
+            heartbeat_timeout=150.0,
+            allowed_mentions=allowed_mentions,
+            intents=intents,
+        )
 
-    # Replace unparsed :emojis:, NQN-style
-    await replace_unparsed_emojis(message)
+        self.presence_updater = self.loop.create_task(self._update_presence())
 
+    async def on_message(self, message) -> None:
+        # Process message
+        await self.process_commands(message)
 
-@bot.event
-async def on_guild_join(guild) -> None:
-    # Create the on-join Embed
-    embed = Embed(
-        title="Hi!",
-        description=f"I'm Emojis: a bot to easily manage your "
-        "server's emojis. My prefix is `>` (but you can change it with `>prefix`)!",
-    )
+        # Replace unparsed :emojis:, NQN-style
+        await self.replace_unparsed_emojis(message)
 
-    embed.add_field(
-        name="Links",
-        value="- [GitHub](https://github.com/passivity/emojis)\n"
-        "- [Support server](https://discord.gg/wzG9Y8s)\n"
-        "- [Vote (top.gg)](https://top.gg/bot/749301838859337799/vote)",
-        inline=False,
-    )
+    async def on_command_error(self, ctx, err) -> None:
+        """
+        Catch and handle errors thrown by the bot.
 
-    # Send the Embed to the first channel the bot can type in
-    for channel in guild.text_channels:
-        if channel.permissions_for(guild.me).send_messages:
-            await channel.send(embed=embed)
-            break
-
-    # Create a webhook in each channel
-    for channel in guild.text_channels:
-        await channel.create_webhook(name="Emojis")
-
-
-def run_once(func):
-    """ Make sure a function only runs once. """
-    # Used for on_ready since it may run multiple times, e.g. if disconnected from Discord
-
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            wrapper.has_run = True
-
-            return func(*args, **kwargs)
-
-    wrapper.has_run = False
-    return wrapper
-
-
-@bot.event
-async def on_ready() -> None:
-    """
-    Run setup stuff that only needs to happen once.
-    """
-
-    await bot.change_presence(activity=Game(name="just updated!"))
-    await begin_updating_presence()
-
-
-@run_once
-async def begin_updating_presence():
-    print("Serving {} guilds".format(len(bot.guilds)))
-
-    while 1:
-        try:
-            await asyncio.sleep(20)
-            await bot.change_presence(
-                activity=Activity(
-                    name=f"{len(bot.guilds)} servers | >help",
-                    type=ActivityType.watching,
-                )
+        :param ctx:
+        :param err: The error thrown.
+        """
+        if isinstance(err, CommandNotFound):
+            return  # Ignore
+        elif isinstance(err, MissingRequiredArgument):
+            # Make missing argument errors clearer
+            err = Exception(
+                "You're missing an argument (`%s`). Type `>help %s` for more info."
+                % (err.param.name, ctx.command)
             )
+        elif isinstance(err, CommandInvokeError):
+            # Try to simplify HTTP errors
+            try:
+                err = Exception(getattr(err, "original").text or str(err))
+            except AttributeError:
+                pass
 
-        except Exception as err:
-            print("Failed to change presence:", err)
+        # Attempt to simplify error message
+        msg = str(getattr(err, "__cause__") or err)
 
+        # Send the error to the user
+        await self.send_error(ctx, msg)
 
-async def send_error(ctx, err: Union[str, Exception]) -> None:
-    """
-    Send an error to a specified channel.
+        # For development purposes, so the error can be seen in console
+        raise err
 
-    :param ctx:
-    :param err: The error message to send
-    """
+    async def on_guild_join(self, guild) -> None:  # noqa
+        """ Send a welcome message, and create the Emojis webhook in each channel. """
 
-    await ctx.send(
-        embed=Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
-    )
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                await channel.send(embed=Embed(description=welcome))
+                break
 
+        for channel in guild.text_channels:
+            await channel.create_webook(name="Emojis")
 
-async def replace_unparsed_emojis(message: Message):
-    """ Replace unparsed ':emojis:' in a message, to simulate Discord Nitro. Sends the modified message on a Webhook
-    that looks like the user. """
-    has_updated = False
+    async def on_ready(self) -> None:  # noqa
+        print(welcome)
 
-    if not message.author.bot:
-        # Check for :emojis:
-        match = bool(search(r":[a-zA-Z0-9_-]+:", message.content))
+    async def _update_presence(self) -> None:
+        await self.wait_until_ready()
 
-        if match:
-            ctx = await bot.get_context(message)
-            message_split = message.content.split()
+        await self.change_presence(
+            activity=Activity(
+                name=f"{len(self.guilds)} servers | >help",
+                type=ActivityType.watching,
+            )
+        )
 
-            # Loop through every word and try to make it an emoji
-            for i in range(len(message_split)):
-                word = message_split[i]
+        await asyncio.sleep(20)
 
-                # Matches unparsed emojis
-                if search(r":[a-zA-Z0-9_-]+:", word):
-                    try:
-                        # Convert to Emoji
-                        found_emoji = await EmojiConverter().convert(
-                            ctx, word.replace(":", "")
-                        )
+    async def send_error(self, ctx, err: Union[str, Exception]) -> None:  # noqa
+        """
+        Send an error to a specified channel.
 
-                        message_split[i] = str(found_emoji)
-                        has_updated = True
-                    except BadArgument as e:
-                        pass
+        :param ctx:
+        :param err: The error message to send
+        """
 
-            if has_updated:
-                # Find the bot's Webhook and send the message on it
-                webhook = await get_emojis_webhook(ctx)
+        await ctx.send(
+            embed=Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
+        )
 
-                await webhook.send(
-                    " ".join(message_split),
-                    username=message.author.display_name,
-                    avatar_url=message.author.avatar_url,
-                )
+    async def replace_unparsed_emojis(self, message: Message):
+        """Replace unparsed ':emojis:' in a message, to simulate Discord Nitro. Sends the modified message on a Webhook
+        that looks like the user."""
+        has_updated = False
 
-                await message.delete()
+        if not message.author.bot:
+            # Check for :emojis:
+            match = bool(search(r":[a-zA-Z0-9_-]+:", message.content))
+
+            if match:
+                ctx = await self.get_context(message)
+                message_split = message.content.split()
+
+                # Loop through every word and try to make it an emoji
+                for i in range(len(message_split)):
+                    word = message_split[i]
+
+                    # Matches unparsed emojis
+                    if search(r":[a-zA-Z0-9_-]+:", word):
+                        try:
+                            # Convert to Emoji
+                            found_emoji = await EmojiConverter().convert(
+                                ctx, word.replace(":", "")
+                            )
+
+                            message_split[i] = str(found_emoji)
+                            has_updated = True
+                        except BadArgument:
+                            pass
+
+                if has_updated:
+                    # Find the bot's Webhook and send the message on it
+                    webhook = await get_emojis_webhook(ctx)
+
+                    await webhook.send(
+                        " ".join(message_split),
+                        username=message.author.display_name,
+                        avatar_url=message.author.avatar_url,
+                    )
+
+                    await message.delete()
 
 
 if __name__ == "__main__":
+    bot = Emojis()
+
     # Remove the default help command so a better one can be added
     bot.remove_command("help")
 

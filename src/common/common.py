@@ -10,7 +10,10 @@ from discord.ext.commands import (
     PartialEmojiConverter,
     Cog,
     command,
-    has_permissions, CheckFailure, check, guild_only
+    has_permissions,
+    CheckFailure,
+    check,
+    guild_only,
 )
 from requests import get
 
@@ -31,6 +34,7 @@ class Emojis:
     success = s = green = "<:greenTick:769936017230266398>"
     neutral = n = gray = "<:greyTick:769937437899489301>"
     waiting = w = typing_ = "<a:typing:734095511916773417>"
+    warning = yellow = "<:warningsmall:744570500919066706>"
 
 
 class Colours:
