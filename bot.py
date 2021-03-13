@@ -19,19 +19,19 @@ log = logging.Logger(__name__)
 
 welcome = (
     "Thanks for inviting Emojis. My prefix is `>`.\n\n"
-    "%s **Important: [Click here to get started](https://rubys.tech/emojis/setup)**."
+    "%s **Important: [Read about getting started](https://github.com/passivity/emojis)**."
     % Emojis.warning
 )
 
 
-class Emojis(AutoShardedBot):
+class EmojisBot(AutoShardedBot):
     def __init__(self):
         # Make sure the bot can't be abused to mass ping
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
         # Minimum required
         intents = Intents(
-            guilds=True, members=True, emojis=True, messages=True, reactions=True
+            guilds=True, emojis=True, messages=True, reactions=True
         )
 
         super().__init__(
@@ -82,11 +82,12 @@ class Emojis(AutoShardedBot):
         await self.send_error(ctx, msg)
 
         # For development purposes, so the error can be seen in console
-        raise err
+        # raise err
 
     async def on_guild_join(self, guild) -> None:  # noqa
         """ Send a welcome message, and create the Emojis webhook in each channel. """
 
+        # Find the first channel the bot can type in and send the welcome message
         for channel in guild.text_channels:
             if channel.permissions_for(guild.me).send_messages:
                 await channel.send(embed=Embed(description=welcome))
@@ -96,7 +97,7 @@ class Emojis(AutoShardedBot):
             await channel.create_webook(name="Emojis")
 
     async def on_ready(self) -> None:  # noqa
-        print(welcome)
+        print("Bot ready!")
 
     async def _update_presence(self) -> None:
         await self.wait_until_ready()
@@ -166,7 +167,7 @@ class Emojis(AutoShardedBot):
 
 
 if __name__ == "__main__":
-    bot = Emojis()
+    bot = EmojisBot()
 
     # Remove the default help command so a better one can be added
     bot.remove_command("help")
