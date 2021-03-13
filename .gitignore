@@ -1,0 +1,16 @@
+*__pycache__
+*bot.db
+*emojis.zip
+./date/packs/*/
+./data/token.txt
+./data/botsggtoken.txt
+.idea/.gitignore
+.idea/dataSources.xml
+.idea/dataSources/
+.idea/discord.xml
+.idea/emojis-r.iml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+.idea/sqldialects.xml
+.idea/vcs.xml
