@@ -99,7 +99,7 @@ class Help(Cog):
     async def about(self, ctx) -> None:
         await ctx.send(
             embed=Embed(
-                description="Emojis is an emoji management bot. It's designed to make it easier for you to manage,"
+                description="CustomEmojis is an emoji management bot. It's designed to make it easier for you to manage,"
                 " find, and create emojis.\n\n We recently rewrote the entirety of the bot to improve its performance "
                 "and maintainability, so you might encounter some bugs."
             )

@@ -18,21 +18,19 @@ from src.common.common import *
 log = logging.Logger(__name__)
 
 welcome = (
-    "Thanks for inviting Emojis. My prefix is `>`.\n\n"
+    "Thanks for inviting CustomEmojis. My prefix is `>`.\n\n"
     "%s **Important: [Read about getting started](https://github.com/passivity/emojis/blob/master/README.md)**."
-    % Emojis.warning
+    % CustomEmojis.warning
 )
 
 
-class EmojisBot(AutoShardedBot):
+class Emojis(AutoShardedBot):
     def __init__(self):
         # Make sure the bot can't be abused to mass ping
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
         # Minimum required
-        intents = Intents(
-            guilds=True, emojis=True, messages=True, reactions=True
-        )
+        intents = Intents(guilds=True, emojis=True, messages=True, reactions=True)
 
         super().__init__(
             command_prefix=">",
@@ -44,7 +42,7 @@ class EmojisBot(AutoShardedBot):
             intents=intents,
         )
 
-        self.presence_updater = self.loop.create_task(self._update_presence())
+        self.presence_updater = self.loop.create_task(self._bg_update_presence())
 
     async def on_message(self, message) -> None:
         # Process message
@@ -85,7 +83,7 @@ class EmojisBot(AutoShardedBot):
         # raise err
 
     async def on_guild_join(self, guild) -> None:  # noqa
-        """ Send a welcome message, and create the Emojis webhook in each channel. """
+        """ Send a welcome message, and create the CustomEmojis webhook in each channel. """
 
         # Find the first channel the bot can type in and send the welcome message
         for channel in guild.text_channels:
@@ -94,22 +92,25 @@ class EmojisBot(AutoShardedBot):
                 break
 
         for channel in guild.text_channels:
-            await channel.create_webook(name="Emojis")
+            await channel.create_webook(name="CustomEmojis")
 
     async def on_ready(self) -> None:  # noqa
         print("Bot ready!")
 
-    async def _update_presence(self) -> None:
+    async def _bg_update_presence(self, delay: int = 20) -> None:
+        """ Update the bot's status continuously. """
+
         await self.wait_until_ready()
 
-        await self.change_presence(
-            activity=Activity(
-                name=f"{len(self.guilds)} servers | >help",
-                type=ActivityType.watching,
+        while not self.is_closed():  # Loop forever
+            await self.change_presence(
+                activity=Activity(
+                    name=f"{len(self.guilds)} servers | >help",
+                    type=ActivityType.watching,
+                )
             )
-        )
 
-        await asyncio.sleep(20)
+            await asyncio.sleep(delay)
 
     async def send_error(self, ctx, err: Union[str, Exception]) -> None:  # noqa
         """
@@ -120,12 +121,14 @@ class EmojisBot(AutoShardedBot):
         """
 
         await ctx.send(
-            embed=Embed(colour=Colours.error, description=f"{Emojis.error} {err}")
+            embed=Embed(colour=Colours.error, description=f"{CustomEmojis.error} {err}")
         )
 
     async def replace_unparsed_emojis(self, message: Message):
-        """Replace unparsed ':emojis:' in a message, to simulate Discord Nitro. Sends the modified message on a Webhook
-        that looks like the user."""
+        """
+        Replace unparsed ':emojis:' in a message, to simulate Discord Nitro.
+        Sends the modified message on a Webhook that looks like the user.
+        """
         has_updated = False
 
         if not message.author.bot:
@@ -167,7 +170,7 @@ class EmojisBot(AutoShardedBot):
 
 
 if __name__ == "__main__":
-    bot = EmojisBot()
+    bot = Emojis()
 
     # Remove the default help command so a better one can be added
     bot.remove_command("help")

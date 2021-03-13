@@ -178,7 +178,7 @@ class Utility(Cog):
                 await sent_msg.edit(
                     embed=Embed(
                         colour=Colours.error,
-                        description="%s This search timed out." % Emojis.error,
+                        description="%s This search timed out." % CustomEmojis.error,
                     )
                 )
             else:

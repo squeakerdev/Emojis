@@ -27,8 +27,8 @@ mg = motor.motor_asyncio.AsyncIOMotorClient("localhost", 27017)
 db = mg.emojis_rewrite
 
 
-class Emojis:
-    """ Emojis used in bot responses. """
+class CustomEmojis:
+    """ CustomEmojis used in bot responses. """
 
     error = e = red = "<:redticksmall:736197216900874240>"
     success = s = green = "<:greenTick:769936017230266398>"
@@ -64,7 +64,7 @@ async def send_success(ctx, quote):
     # TODO: document
     await ctx.send(
         embed=Embed(
-            colour=Colours.success, description="%s %s" % (Emojis.success, quote)
+            colour=Colours.success, description="%s %s" % (CustomEmojis.success, quote)
         )
     )
 
@@ -116,7 +116,7 @@ async def upload_emoji(
         await ctx.send(
             embed=Embed(
                 colour=Colours.success,
-                description="%s `:%s:`" % (Emojis.success, name),
+                description="%s `:%s:`" % (CustomEmojis.success, name),
             ).set_thumbnail(url=new_emoji.url)
         )
 
@@ -124,8 +124,8 @@ async def upload_emoji(
 
 
 async def get_emojis_webhook(ctx: Context) -> Webhook:
-    """ Find the Emojis webhook, or create it if it doesn't exist. """
+    """ Find the CustomEmojis webhook, or create it if it doesn't exist. """
     webhooks = await ctx.channel.webhooks()
-    emojis_webhook = discord_get(webhooks, name="Emojis")
+    emojis_webhook = discord_get(webhooks, name="CustomEmojis")
 
-    return emojis_webhook or await ctx.channel.create_webhook(name="Emojis")
+    return emojis_webhook or await ctx.channel.create_webhook(name="CustomEmojis")
