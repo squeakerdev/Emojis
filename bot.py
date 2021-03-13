@@ -19,7 +19,7 @@ log = logging.Logger(__name__)
 
 welcome = (
     "Thanks for inviting Emojis. My prefix is `>`.\n\n"
-    "%s **Important: [Read about getting started](https://github.com/passivity/emojis)**."
+    "%s **Important: [Read about getting started](https://github.com/passivity/emojis/blob/master/README.md)**."
     % Emojis.warning
 )
 
