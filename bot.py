@@ -42,6 +42,7 @@ class Emojis(AutoShardedBot):
             intents=intents,
         )
 
+        # Update presence continuously
         self.presence_updater = self.loop.create_task(self._bg_update_presence())
 
     async def on_message(self, message) -> None:
@@ -181,6 +182,9 @@ if __name__ == "__main__":
         if not cog.startswith("_"):
             file_name, file_extension = splitext(cog)
             bot.load_extension("src.exts.%s" % file_name)
+
+    # Reload the Misc extension to update the help command
+    bot.reload_extension("src.exts.misc")
 
     # Code written after this block may not run
     with open("./data/token.txt", "r") as token:

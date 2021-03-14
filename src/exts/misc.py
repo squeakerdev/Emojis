@@ -17,9 +17,11 @@ class Misc(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.base_help_embed = Embed()
+        self.bot.loop.create_task(self.create_help_embed())
 
-    async def create_help_embed(self, ctx) -> Embed:
+    async def create_help_embed(self) -> None:
         """ Create the top-level help Embed (list of commands). """
+
         embed = Embed(title="Commands")
 
         # A list of cogs with an extra "Other" cog for uncategorised commands
@@ -29,7 +31,7 @@ class Misc(Cog):
 
         # Loop through each command and add it to the dictionary
         for cmd in self.bot.walk_commands():
-            cmd_usage = ctx.prefix + cmd.name
+            cmd_usage = ">" + cmd.name
 
             if cmd.cog is not None:
                 command_list[type(cmd.cog).__name__].append(cmd_usage)
@@ -44,7 +46,7 @@ class Misc(Cog):
                     value="```\n%s\n```" % "\n".join(sorted(commands)),  # Code block
                 )
 
-        return embed
+        self.base_help_embed = embed
 
     async def get_command_info(self, command_name) -> Command:
         """
@@ -91,7 +93,7 @@ class Misc(Cog):
             await ctx.send(embed=embed)
         # Get a list of commands
         else:
-            await ctx.send(embed=await self.create_help_embed(ctx))
+            await ctx.send(embed=self.base_help_embed)
 
     @command(
         name="ping",
