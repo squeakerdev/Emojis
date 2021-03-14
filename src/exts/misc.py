@@ -1,4 +1,4 @@
-from discord.ext.commands import Command, CommandNotFound
+from discord.ext.commands import Command, CommandNotFound, is_owner
 
 from src.common.common import *
 
@@ -159,3 +159,23 @@ class Misc(Cog):
                 % GITHUB_URL
             )
         )
+
+    @command(
+        name="usage",
+        description="View command usage.",
+        usage=">usage",
+        hidden=True,
+    )
+    @is_owner()
+    async def usage(self, ctx) -> None:
+        # todo: doc these commands
+        query = db.usage.find({}, {"_id": False})
+
+        async for i in query:
+            results = dict(i)
+            sort = sorted(results, key=lambda x: results[x], reverse=True)
+            usage = ["`>%s`: %d" % (x, results[x]) for x in sort]
+
+            await ctx.send(embed=Embed(description="\n".join(usage)))
+
+            return

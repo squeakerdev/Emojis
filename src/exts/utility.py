@@ -4,7 +4,7 @@ from random import randint
 from re import sub
 
 from discord import Member, User, Message, NotFound
-from discord.ext.commands import cooldown, BucketType
+from discord.ext.commands import cooldown, BucketType, is_owner
 
 from src.common.common import *
 

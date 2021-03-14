@@ -4,7 +4,14 @@ from os import listdir
 from os.path import splitext
 from re import search
 
-from discord import Activity, ActivityType, Message, Intents, AllowedMentions
+from discord import (
+    Activity,
+    ActivityType,
+    Message,
+    Intents,
+    AllowedMentions,
+    HTTPException,
+)
 from discord.ext.commands import (
     CommandNotFound,
     MissingRequiredArgument,
@@ -145,12 +152,15 @@ class Emojis(AutoShardedBot):
         await self.wait_until_ready()
 
         while not self.is_closed():  # Loop forever
-            await self.change_presence(
-                activity=Activity(
-                    name=f"{len(self.guilds)} servers | >help",
-                    type=ActivityType.watching,
+            try:
+                await self.change_presence(
+                    activity=Activity(
+                        name=f"{len(self.guilds)} servers | >help",
+                        type=ActivityType.watching,
+                    )
                 )
-            )
+            except HTTPException:
+                pass
 
             await asyncio.sleep(delay)
 
@@ -161,7 +171,9 @@ class Emojis(AutoShardedBot):
 
         while not self.is_closed():
             for cmd, usage in self.command_usage.items():
-                await db.usage.update_one({}, {"$inc": {cmd.lower(): usage}}, upsert=True)
+                await db.usage.update_one(
+                    {}, {"$inc": {cmd.lower(): usage}}, upsert=True
+                )
 
             await asyncio.sleep(delay)
 
