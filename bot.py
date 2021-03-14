@@ -18,7 +18,7 @@ from src.common.common import *
 log = logging.Logger(__name__)
 
 welcome = (
-    "Thanks for inviting CustomEmojis. My prefix is `>`.\n\n"
+    "Thanks for inviting Emojis. My prefix is `>`.\n\n"
     "%s **Important: [Read about getting started](https://github.com/passivity/emojis/blob/master/README.md)**."
     % CustomEmojis.warning
 )
@@ -83,7 +83,7 @@ class Emojis(AutoShardedBot):
         # raise err
 
     async def on_guild_join(self, guild) -> None:  # noqa
-        """ Send a welcome message, and create the CustomEmojis webhook in each channel. """
+        """ Send a welcome message, and create the Emojis webhook in each channel. """
 
         # Find the first channel the bot can type in and send the welcome message
         for channel in guild.text_channels:
@@ -92,7 +92,7 @@ class Emojis(AutoShardedBot):
                 break
 
         for channel in guild.text_channels:
-            await channel.create_webook(name="CustomEmojis")
+            await channel.create_webook(name="Emojis")
 
     async def on_ready(self) -> None:  # noqa
         print("Bot ready!")

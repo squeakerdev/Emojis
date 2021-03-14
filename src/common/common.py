@@ -28,7 +28,7 @@ db = mg.emojis_rewrite
 
 
 class CustomEmojis:
-    """ CustomEmojis used in bot responses. """
+    """ Emojis used in bot responses. """
 
     error = e = red = "<:redticksmall:736197216900874240>"
     success = s = green = "<:greenTick:769936017230266398>"
@@ -124,8 +124,8 @@ async def upload_emoji(
 
 
 async def get_emojis_webhook(ctx: Context) -> Webhook:
-    """ Find the CustomEmojis webhook, or create it if it doesn't exist. """
+    """ Find the Emojis webhook, or create it if it doesn't exist. """
     webhooks = await ctx.channel.webhooks()
-    emojis_webhook = discord_get(webhooks, name="CustomEmojis")
+    emojis_webhook = discord_get(webhooks, name="Emojis")
 
-    return emojis_webhook or await ctx.channel.create_webhook(name="CustomEmojis")
+    return emojis_webhook or await ctx.channel.create_webhook(name="Emojis")
