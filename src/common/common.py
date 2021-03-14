@@ -60,15 +60,6 @@ class ColouredEmbed(Embed):
 Embed = ColouredEmbed
 
 
-async def send_success(ctx, quote):
-    # TODO: document
-    await ctx.send(
-        embed=Embed(
-            colour=Colours.success, description="%s %s" % (CustomEmojis.success, quote)
-        )
-    )
-
-
 async def check_if_emoji(ctx, query: str) -> Union[PartialEmoji, None]:
     """
     Check if a string can be converted to an emoji.

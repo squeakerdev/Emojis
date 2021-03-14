@@ -11,21 +11,49 @@ from discord.ext.commands import (
     CommandInvokeError,
     AutoShardedBot,
     EmojiConverter,
+    BucketType,
+    CooldownMapping,
 )
 
 from src.common.common import *
 
 log = logging.Logger(__name__)
 
-welcome = (
+GLOBAL_COOLDOWN = (1.0, 5.0)  # (1.0, 5.0) = 1 command per 5 seconds
+WELCOME_MSG = (
     "Thanks for inviting Emojis. My prefix is `>`.\n\n"
     "%s **Important: [Read about getting started](https://github.com/passivity/emojis/blob/master/README.md)**."
     % CustomEmojis.warning
 )
 
 
+class CustomContext(Context):
+    """ A custom Context class with additional methods. """
+
+    async def send_error(self, err: Union[str, Exception]) -> None:
+        """ Send an error Embed to a specified channel. """
+
+        await self.send(
+            embed=Embed(colour=Colours.error, description=f"{CustomEmojis.error} {err}")
+        )
+
+    async def send_success(self, string):
+        """ Send a success Embed to a specified channel. """
+
+        await self.send(
+            embed=Embed(
+                colour=Colours.success,
+                description="%s %s" % (CustomEmojis.success, string),
+            )
+        )
+
+
 class Emojis(AutoShardedBot):
+    """ A custom AutoShardedBot class with overridden methods."""
+
     def __init__(self):
+        self.cooldown = CooldownMapping.from_cooldown(*GLOBAL_COOLDOWN, BucketType.user)
+
         # Make sure the bot can't be abused to mass ping
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
 
@@ -45,6 +73,10 @@ class Emojis(AutoShardedBot):
         # Update presence continuously
         self.presence_updater = self.loop.create_task(self._bg_update_presence())
 
+    async def get_context(self, message, *, cls=CustomContext):
+        """ Use CustomContext instead of Context. """
+        return await super().get_context(message, cls=cls)
+
     async def on_message(self, message) -> None:
         # Process message
         await self.process_commands(message)
@@ -59,7 +91,9 @@ class Emojis(AutoShardedBot):
         :param ctx:
         :param err: The error thrown.
         """
-        if isinstance(err, CommandNotFound):
+        if isinstance(err, CheckFailure):
+            return
+        elif isinstance(err, CommandNotFound):
             return  # Ignore
         elif isinstance(err, MissingRequiredArgument):
             # Make missing argument errors clearer
@@ -78,7 +112,7 @@ class Emojis(AutoShardedBot):
         msg = str(getattr(err, "__cause__") or err)
 
         # Send the error to the user
-        await self.send_error(ctx, msg)
+        await ctx.send_error(msg)
 
         # For development purposes, so the error can be seen in console
         # raise err
@@ -89,7 +123,7 @@ class Emojis(AutoShardedBot):
         # Find the first channel the bot can type in and send the welcome message
         for channel in guild.text_channels:
             if channel.permissions_for(guild.me).send_messages:
-                await channel.send(embed=Embed(description=welcome))
+                await channel.send(embed=Embed(description=WELCOME_MSG))
                 break
 
         for channel in guild.text_channels:
@@ -112,18 +146,6 @@ class Emojis(AutoShardedBot):
             )
 
             await asyncio.sleep(delay)
-
-    async def send_error(self, ctx, err: Union[str, Exception]) -> None:  # noqa
-        """
-        Send an error to a specified channel.
-
-        :param ctx:
-        :param err: The error message to send
-        """
-
-        await ctx.send(
-            embed=Embed(colour=Colours.error, description=f"{CustomEmojis.error} {err}")
-        )
 
     async def replace_unparsed_emojis(self, message: Message):
         """

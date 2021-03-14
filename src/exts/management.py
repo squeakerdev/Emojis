@@ -34,9 +34,7 @@ class Management(Cog):
         new_name = sub(r" ", "_", new_name)
 
         await emoji.edit(name=new_name)
-        await send_success(
-            ctx, "Emoji updated. `:%s:` -> `:%s:`" % (old_name, new_name)
-        )
+        await ctx.send_success("Emoji updated. `:%s:` -> `:%s:`" % (old_name, new_name))
 
     @command(
         name="delete",
@@ -55,7 +53,7 @@ class Management(Cog):
             raise Exception("That emoji isn't from this server.")
 
         await emoji.delete(reason="Delete command called by %s" % ctx.author)
-        await send_success(ctx, "Emoji deleted.")
+        await ctx.send_success("Emoji deleted.")
 
 
 def setup(bot):
