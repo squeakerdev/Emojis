@@ -53,6 +53,7 @@ class Emojis(AutoShardedBot):
 
     def __init__(self):
         self.cooldown = CooldownMapping.from_cooldown(*GLOBAL_COOLDOWN, BucketType.user)
+        self.command_usage = {}
 
         # Make sure the bot can't be abused to mass ping
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
@@ -72,6 +73,7 @@ class Emojis(AutoShardedBot):
 
         # Update presence continuously
         self.presence_updater = self.loop.create_task(self._bg_update_presence())
+        self.usage_updater = self.loop.create_task(self._bg_update_usage())
 
     async def get_context(self, message, *, cls=CustomContext):
         """ Use CustomContext instead of Context. """
@@ -117,6 +119,11 @@ class Emojis(AutoShardedBot):
         # For development purposes, so the error can be seen in console
         # raise err
 
+    async def on_command_completion(self, ctx):
+        cmd = ctx.command.name.lower()
+
+        self.command_usage[cmd] = self.command_usage.get(cmd, 0) + 1
+
     async def on_guild_join(self, guild) -> None:  # noqa
         """ Send a welcome message, and create the Emojis webhook in each channel. """
 
@@ -144,6 +151,17 @@ class Emojis(AutoShardedBot):
                     type=ActivityType.watching,
                 )
             )
+
+            await asyncio.sleep(delay)
+
+    async def _bg_update_usage(self, delay: int = 900):
+        """ Update the bot's usage stats in MongoDB. """
+
+        await self.wait_until_ready()
+
+        while not self.is_closed():
+            for cmd, usage in self.command_usage.items():
+                await db.usage.update_one({}, {"$inc": {cmd.lower(): usage}}, upsert=True)
 
             await asyncio.sleep(delay)
 

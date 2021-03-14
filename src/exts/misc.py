@@ -36,12 +36,13 @@ class Misc(Cog):
 
         # Loop through each command and add it to the dictionary
         for cmd in self.bot.walk_commands():
-            cmd_usage = ">" + cmd.name
+            if not cmd.hidden:
+                cmd_usage = ">" + cmd.name
 
-            if cmd.cog is not None:
-                command_list[type(cmd.cog).__name__].append(cmd_usage)
-            else:
-                command_list["Other"].append(cmd_usage)
+                if cmd.cog is not None:
+                    command_list[type(cmd.cog).__name__].append(cmd_usage)
+                else:
+                    command_list["Other"].append(cmd_usage)
 
         # Add each cog's commands to the embed as a new field
         for name, commands in command_list.items():
