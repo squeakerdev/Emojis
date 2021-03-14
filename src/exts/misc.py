@@ -5,6 +5,10 @@ from src.common.common import *
 INVITE_URL = "https://discord.com/oauth2/authorize?client_id=749301838859337799&permissions=1946545248&scope=bot"
 VOTE_URL = "https://top.gg/bot/749301838859337799/vote"
 GITHUB_URL = "https://github.com/passivity/emojis"
+WHATS_NEW = (
+    "**The bot is back online!** We finished rebuilding the bot from the ground up to give you the best experience "
+    "possible."
+)
 
 
 def setup(bot):
@@ -22,7 +26,8 @@ class Misc(Cog):
     async def create_help_embed(self) -> None:
         """ Create the top-level help Embed (list of commands). """
 
-        embed = Embed(title="Commands")
+        embed = Embed()
+        embed.add_field(name="What's new?", value="⭐ %s" % WHATS_NEW, inline=False)
 
         # A list of cogs with an extra "Other" cog for uncategorised commands
         cogs = list(self.bot.cogs) + ["Other"]
@@ -146,7 +151,7 @@ class Misc(Cog):
             "sup",
         ),
     )
-    async def invite(self, ctx) -> None:
+    async def support(self, ctx) -> None:
         await ctx.send(
             embed=Embed(
                 description=":orange_heart: **[Click here to star & watch the bot on GitHub.](%s)**"

@@ -50,12 +50,15 @@ class Fun(Cog):
             elif letter == " ":
                 emojis.append(":black_large_square:")
 
+        # Disguise as the user and send on Webhook
         webhook = await get_emojis_webhook(ctx)
         await webhook.send(
             " ".join(emojis),
             username=ctx.author.display_name,
             avatar_url=ctx.author.avatar_url,
         )
+
+        await ctx.message.delete()
 
     @command(
         name="random",
