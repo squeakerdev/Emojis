@@ -18,18 +18,24 @@ class CustomChecks(Cog):
 
         async def cooldown_check() -> bool:
             """ Implement a global cooldown for every command, defined in bot.cooldown. """
+            whitelist = ("help",)
 
+            if ctx.command.name in whitelist:
+                return True
+
+            # Get current cooldown
             bucket = self.bot.cooldown.get_bucket(ctx.message)
             retry_after = bucket.update_rate_limit()
 
-            if retry_after:
+            if retry_after:  # On cooldown
                 await ctx.send_error(
                     "You're on cooldown. Try again in %d seconds." % int(retry_after)
                 )
                 return False
-            else:
+            else:  # Not on cooldown
                 return True
 
+        # Checks not in this tuple will be ignored
         active_checks = (cooldown_check,)
 
         # Loop through every check
