@@ -111,6 +111,7 @@ class Misc(Cog):
         ),
     )
     async def ping(self, ctx) -> None:
+        """ Get the bot's latency. """
         latency = str(round(self.bot.latency * 1000, 2)) + "ms"
 
         await ctx.send(embed=Embed(title="Pong :ping_pong: ", description=f"{latency}"))
@@ -122,6 +123,7 @@ class Misc(Cog):
         aliases=("inv",),
     )
     async def invite(self, ctx) -> None:
+        """ Get the invite link for the bot. """
         await ctx.send(
             embed=Embed(
                 description=":orange_heart: **[Click here to invite the bot.](%s)**"
@@ -136,6 +138,7 @@ class Misc(Cog):
         aliases=("v",),
     )
     async def vote(self, ctx) -> None:
+        """ Get the link to vote for the bot. """
         await ctx.send(
             embed=Embed(
                 description=":orange_heart: **[Click here to vote for the bot.](%s)**"
@@ -153,6 +156,7 @@ class Misc(Cog):
         ),
     )
     async def support(self, ctx) -> None:
+        """ Get the GitHub link for the bot. """
         await ctx.send(
             embed=Embed(
                 description=":orange_heart: **[Click here to star & watch the bot on GitHub.](%s)**"
@@ -168,7 +172,7 @@ class Misc(Cog):
     )
     @is_owner()
     async def usage(self, ctx) -> None:
-        # todo: doc these commands
+        """ View usage stats for the bot. """
         query = db.usage.find({}, {"_id": False})
 
         async for i in query:
@@ -176,6 +180,22 @@ class Misc(Cog):
             sort = sorted(results, key=lambda x: results[x], reverse=True)
             usage = ["`>%s`: %d" % (x, results[x]) for x in sort]
 
-            await ctx.send(embed=Embed(description="\n".join(usage)))
+            await ctx.send(
+                embed=Embed(
+                    description="%s\n\nTotal: %d"
+                    % ("\n".join(usage), sum(results.values()))
+                )
+            )
 
             return
+
+    @command(
+        name="reload",
+        description="Reload a cog.",
+        usage=">reload",
+        hidden=True,
+    )
+    @is_owner()
+    async def reload(self, ctx, cog) -> None:
+        """ Reload a cog. """
+        await self.bot.reload_extension("src.exts.%s" % cog.lower())
