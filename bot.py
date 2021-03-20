@@ -4,6 +4,8 @@ from os import listdir
 from os.path import splitext
 from re import search
 
+import matplotlib.pyplot as plt
+from dateutil.utils import today
 from discord import (
     Activity,
     ActivityType,
@@ -54,6 +56,41 @@ class CustomContext(Context):
             )
         )
 
+    async def upload_emoji(
+        self, name: str, url: str, post_success: bool = True
+    ) -> Emoji:
+        """
+        Upload a custom emoji to a guild.
+
+        :param name: The name for the emoji.
+        :param url: The source of the image. Must be < 256kb.
+        :param post_success: [Optional] Whether or not to post a success message in the chat.
+        :returns: The new emoji.
+        """
+        response = get(url)
+
+        if response.ok:
+            # Store the image in BytesIO to avoid saving to disk
+            emoji_bytes = BytesIO(response.content)
+
+            # Upload the emoji to the Guild
+            new_emoji = await self.guild.create_custom_emoji(
+                name=name, image=emoji_bytes.read()
+            )
+        else:
+            raise Exception("Couldn't fetch image (%s)." % response.status_code)
+
+        # Post a success Embed in the chat
+        if post_success:
+            await self.send(
+                embed=Embed(
+                    colour=Colours.success,
+                    description="%s `:%s:`" % (CustomEmojis.success, name),
+                ).set_thumbnail(url=new_emoji.url)
+            )
+
+        return new_emoji
+
 
 class Emojis(AutoShardedBot):
     """ A custom AutoShardedBot class with overridden methods."""
@@ -71,11 +108,19 @@ class Emojis(AutoShardedBot):
         super().__init__(
             command_prefix=">",
             description="An emoji management bot.",
+            activity=Activity(
+                name=f">help",
+                type=ActivityType.watching,
+            ),
             pm_help=None,
-            fetch_offline_members=False,
+            chunk_guilds_at_startup=False,
             heartbeat_timeout=150.0,
             allowed_mentions=allowed_mentions,
             intents=intents,
+            owner_ids=[
+                554275447710548018,  # ruby
+                686941073792303157,  # Kaki
+            ],
         )
 
         # Update presence continuously
@@ -146,21 +191,22 @@ class Emojis(AutoShardedBot):
     async def on_ready(self) -> None:  # noqa
         print("Bot ready!")
 
-    async def _bg_update_presence(self, delay: int = 20) -> None:
+    async def _bg_update_presence(self, delay: int = 300) -> None:
         """ Update the bot's status continuously. """
 
         await self.wait_until_ready()
 
-        while not self.is_closed():  # Loop forever
-            try:
-                await self.change_presence(
-                    activity=Activity(
-                        name=f"{len(self.guilds)} servers | >help",
-                        type=ActivityType.watching,
+        while True:
+            if not self.is_closed():
+                try:
+                    await self.change_presence(
+                        activity=Activity(
+                            name=f">help",
+                            type=ActivityType.watching,
+                        )
                     )
-                )
-            except HTTPException:
-                pass
+                except HTTPException:
+                    pass
 
             await asyncio.sleep(delay)
 
@@ -170,11 +216,24 @@ class Emojis(AutoShardedBot):
         await self.wait_until_ready()
 
         while not self.is_closed():
+            # Update all-time usage data
             for cmd, usage in self.command_usage.items():
+                # Update global command usage
                 await db.usage.update_one(
                     {}, {"$inc": {cmd.lower(): usage}}, upsert=True
                 )
 
+                # Update today's command usage
+                await db.historical_usage.update_one(
+                    {"date": str(today().strftime("%Y-%m-%d"))},
+                    {"$inc": {"commands": usage}},
+                    upsert=True,
+                )
+
+            # Reset command usage cache
+            self.command_usage = {}
+
+            await make_graph()
             await asyncio.sleep(delay)
 
     async def replace_unparsed_emojis(self, message: Message):
@@ -220,6 +279,26 @@ class Emojis(AutoShardedBot):
                     )
 
                     await message.delete()
+
+
+async def make_graph():
+    """ Make a graph of command usage. """
+    query = db.historical_usage.find({}, {"_id": False})
+
+    dates = []
+    commands = []
+
+    async for i in query:
+        date = i["date"]
+        cmds = i["commands"]
+
+        dates.append(date)
+        commands.append(cmds)
+
+    plt.clf()
+    plt.plot(dates, commands)
+    plt.title = "Command usage by day"
+    plt.savefig("./data/stats/usage.png")
 
 
 if __name__ == "__main__":

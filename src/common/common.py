@@ -77,43 +77,6 @@ async def check_if_emoji(ctx, query: str) -> Union[PartialEmoji, None]:
         return None
 
 
-async def upload_emoji(
-    ctx: Context, name: str, url: str, post_success: bool = True
-) -> Emoji:
-    """
-    Upload a custom emoji to a guild.
-
-    :param ctx: Context. Must be a Message.
-    :param name: The name for the emoji.
-    :param url: The source of the image. Must be < 256kb.
-    :param post_success: [Optional] Whether or not to post a success message in the chat.
-    :return: The new emoji.
-    """
-    response = get(url)
-
-    if response.ok:
-        # Store the image in BytesIO to avoid saving to disk
-        emoji_bytes = BytesIO(response.content)
-
-        # Upload the emoji to the Guild
-        new_emoji = await ctx.guild.create_custom_emoji(
-            name=name, image=emoji_bytes.read()
-        )
-    else:
-        raise Exception("Couldn't fetch image (%s)." % response.status_code)
-
-    # Post a success Embed in the chat
-    if post_success:
-        await ctx.send(
-            embed=Embed(
-                colour=Colours.success,
-                description="%s `:%s:`" % (CustomEmojis.success, name),
-            ).set_thumbnail(url=new_emoji.url)
-        )
-
-    return new_emoji
-
-
 async def get_emojis_webhook(ctx: Context) -> Webhook:
     """ Find the Emojis webhook, or create it if it doesn't exist. """
     webhooks = await ctx.channel.webhooks()

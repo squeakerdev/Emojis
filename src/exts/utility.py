@@ -41,6 +41,7 @@ class Utility(Cog):
     )
     @guild_only()
     @has_permissions(manage_emojis=True)
+    @cooldown(1, 30, BucketType.user)
     async def upload(self, ctx, name, url: str = None, *, extra_args="") -> None:
         """
         Upload an emoji from an image. There are a few options for how to do this:
@@ -65,7 +66,7 @@ class Utility(Cog):
 
         # Both arguments are already provided :)
         if name and url:
-            await upload_emoji(ctx, name, url)
+            await ctx.upload_emoji(name, url)
 
         # Name specified, but no URL
         elif name and not url:
@@ -73,7 +74,7 @@ class Utility(Cog):
             # An attachment was uploaded, use that for the emoji URL
             if ctx.message.attachments:
                 url = ctx.message.attachments[0].url
-                await upload_emoji(ctx, name, url)
+                await ctx.upload_emoji(name, url)
 
             # No attachments
             else:
@@ -81,7 +82,7 @@ class Utility(Cog):
                 emoji = await check_if_emoji(ctx, name)
 
                 if emoji:
-                    await upload_emoji(ctx, emoji.name, emoji.url)
+                    await ctx.upload_emoji(emoji.name, emoji.url)
                 else:
                     raise Exception(
                         "That doesn't look quite right. Check `>help upload`."
@@ -112,7 +113,7 @@ class Utility(Cog):
         # Remove invalid characters
         name = sub(r"[^a-zA-Z0-9]", "", user.name)
 
-        await upload_emoji(ctx, name, user.avatar_url)
+        await ctx.upload_emoji(name, user.avatar_url)
 
     @command(
         name="search",
@@ -193,7 +194,7 @@ class Utility(Cog):
                     if page != 0:
                         page -= 1
                 elif reaction == "👍":
-                    await upload_emoji(ctx, emoji.name, emoji.url)
+                    await ctx.upload_emoji(emoji.name, emoji.url)
                 elif reaction == "➡":
                     if page != len(emojis) - 1:
                         page += 1

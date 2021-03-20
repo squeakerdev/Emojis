@@ -83,7 +83,7 @@ class Fun(Cog):
 
         # Pick and upload a random emoji
         emoji = choice(emojis)
-        await upload_emoji(ctx, emoji.name, emoji.url)
+        await ctx.upload_emoji(emoji.name, emoji.url)
 
     @command(
         name="clap",

@@ -1,3 +1,4 @@
+from discord import File
 from discord.ext.commands import Command, CommandNotFound, is_owner
 
 from src.common.common import *
@@ -180,11 +181,20 @@ class Misc(Cog):
             sort = sorted(results, key=lambda x: results[x], reverse=True)
             usage = ["`>%s`: %d" % (x, results[x]) for x in sort]
 
+            pic = None
+
+            try:
+                with open("./data/stats/usage.png", "rb") as f:
+                    pic = File(f)
+            except OSError:
+                pass
+
             await ctx.send(
                 embed=Embed(
                     description="%s\n\nTotal: %d"
                     % ("\n".join(usage), sum(results.values()))
-                )
+                ),
+                file=pic,
             )
 
             return
