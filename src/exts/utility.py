@@ -41,7 +41,7 @@ class Utility(Cog):
     )
     @guild_only()
     @has_permissions(manage_emojis=True)
-    @cooldown(1, 30, BucketType.user)
+    @cooldown(1, 15, BucketType.user)
     async def upload(self, ctx, name, url: str = None, *, extra_args="") -> None:
         """
         Upload an emoji from an image. There are a few options for how to do this:

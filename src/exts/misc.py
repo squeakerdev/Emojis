@@ -209,3 +209,15 @@ class Misc(Cog):
     async def reload(self, ctx, cog) -> None:
         """ Reload a cog. """
         await self.bot.reload_extension("src.exts.%s" % cog.lower())
+
+    @command(
+        name="servers",
+        description="View the number of servers the bot is in.",
+        usage=">servers",
+        aliases=("guilds",),
+        hidden=True,
+    )
+    @is_owner()
+    async def servers(self, ctx):
+        """ View the number of servers the bot is in. """
+        await ctx.send(embed=Embed(description="%d servers" % len(self.bot.guilds)))
