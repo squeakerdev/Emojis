@@ -28,7 +28,7 @@ class CustomChecks(Cog):
             retry_after = bucket.update_rate_limit()
 
             if retry_after:  # On cooldown
-                await ctx.send_error(
+                await ctx.error(
                     "You're on cooldown. Try again in %d seconds." % int(retry_after)
                 )
                 return False
@@ -40,7 +40,7 @@ class CustomChecks(Cog):
 
         # Loop through every check
         # Every check must return True for the command to continue
-        # When adding new checks, use ctx.send_error and then return False on fail
+        # When adding new checks, use ctx.error and then return False on fail
         for c in active_checks:
             if not await c():
                 return False

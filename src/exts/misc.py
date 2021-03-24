@@ -7,8 +7,7 @@ INVITE_URL = "https://discord.com/oauth2/authorize?client_id=749301838859337799&
 VOTE_URL = "https://top.gg/bot/749301838859337799/vote"
 GITHUB_URL = "https://github.com/passivity/emojis"
 WHATS_NEW = (
-    "**The bot is back online!** We finished rebuilding the bot from the ground up to give you the best experience "
-    "possible."
+    "**`>prefix`:** You can now change the bot's prefix."
 )
 
 

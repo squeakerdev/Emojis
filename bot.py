@@ -39,14 +39,14 @@ WELCOME_MSG = (
 class CustomContext(Context):
     """ A custom Context class with additional methods. """
 
-    async def send_error(self, err: Union[str, Exception]) -> None:
+    async def error(self, err: Union[str, Exception]) -> None:
         """ Send an error Embed to a specified channel. """
 
         await self.send(
             embed=Embed(colour=Colours.error, description=f"{CustomEmojis.error} {err}")
         )
 
-    async def send_success(self, string):
+    async def success(self, string):
         """ Send a success Embed to a specified channel. """
 
         await self.send(
@@ -98,6 +98,8 @@ class Emojis(AutoShardedBot):
     def __init__(self):
         self.cooldown = CooldownMapping.from_cooldown(*GLOBAL_COOLDOWN, BucketType.user)
         self.command_usage = {}
+        self.prefixes = {}
+        self.blacklist = set()
 
         # Make sure the bot can't be abused to mass ping
         allowed_mentions = AllowedMentions(roles=False, everyone=False, users=True)
@@ -106,7 +108,7 @@ class Emojis(AutoShardedBot):
         intents = Intents(guilds=True, emojis=True, messages=True, reactions=True)
 
         super().__init__(
-            command_prefix=">",
+            command_prefix=self.get_prefix,
             description="An emoji management bot.",
             activity=Activity(
                 name=f">help",
@@ -123,9 +125,16 @@ class Emojis(AutoShardedBot):
             ],
         )
 
-        # Update presence continuously
+        # Update continuously
         self.presence_updater = self.loop.create_task(self._bg_update_presence())
         self.usage_updater = self.loop.create_task(self._bg_update_usage())
+
+        # Update once
+        self.loop.create_task(self.update_prefix_list())
+        self.loop.create_task(self.update_blacklist())
+
+    async def get_prefix(self, message):
+        return self.prefixes.get(message.guild.id, ">")
 
     async def get_context(self, message, *, cls=CustomContext):
         """ Use CustomContext instead of Context. """
@@ -166,10 +175,13 @@ class Emojis(AutoShardedBot):
         msg = str(getattr(err, "__cause__") or err)
 
         # Send the error to the user
-        await ctx.send_error(msg)
+        await ctx.error(msg)
 
-        # For development purposes, so the error can be seen in console
-        # raise err
+    async def invoke(self, ctx):
+        if ctx.message.author.id in self.blacklist:
+            await ctx.error("You're blacklisted. ")
+        else:
+            await super().invoke(ctx)
 
     async def on_command_completion(self, ctx):
         cmd = ctx.command.name.lower()
@@ -190,6 +202,18 @@ class Emojis(AutoShardedBot):
 
     async def on_ready(self) -> None:  # noqa
         print("Bot ready!")
+
+    async def update_blacklist(self):
+        query = db.blacklist.find({}, {"_id": False})
+
+        async for result in query:
+            self.blacklist.add(result["id"])
+
+    async def update_prefix_list(self):
+        query = db.prefixes.find({}, {"_id": False})
+
+        async for result in query:
+            self.prefixes[result["id"]] = result["prefix"]
 
     async def _bg_update_presence(self, delay: int = 300) -> None:
         """ Update the bot's status continuously. """

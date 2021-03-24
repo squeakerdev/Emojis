@@ -1,5 +1,8 @@
 from re import sub
 
+from discord import User
+from discord.ext.commands import is_owner
+
 from src.common.common import *
 
 
@@ -34,7 +37,7 @@ class Management(Cog):
         new_name = sub(r" ", "_", new_name)
 
         await emoji.edit(name=new_name)
-        await ctx.send_success("Emoji updated. `:%s:` -> `:%s:`" % (old_name, new_name))
+        await ctx.success("Emoji updated. `:%s:` -> `:%s:`" % (old_name, new_name))
 
     @command(
         name="delete",
@@ -53,7 +56,37 @@ class Management(Cog):
             raise Exception("That emoji isn't from this server.")
 
         await emoji.delete(reason="Delete command called by %s" % ctx.author)
-        await ctx.send_success("Emoji deleted.")
+        await ctx.success("Emoji deleted.")
+
+    @command(
+        name="prefix",
+        description="Update the bot's prefix.",
+        usage=">prefix [prefix]",
+    )
+    @guild_only()
+    @has_permissions(manage_guild=True)
+    async def prefix(self, ctx, *, prefix) -> None:
+        await db.prefixes.update_one(
+            {"id": ctx.guild.id}, {"$set": {"prefix": prefix}}, upsert=True
+        )
+        self.bot.prefixes[ctx.guild.id] = prefix
+
+        await ctx.success("My new prefix is `%s`." % prefix)
+
+    @command(
+        name="blacklist",
+        description="Blacklist a user.",
+        usage=">blacklist [user] [reason]",
+        hidden=True,
+    )
+    @is_owner()
+    async def blacklist(self, ctx, user: User, *, reason="Unspecified") -> None:
+        await db.blacklist.update_one(
+            {"id": user.id}, {"$set": {"reason:": reason}}, upsert=True
+        )
+        self.bot.blacklist.add(user.id)
+
+        await ctx.success("%s blacklisted." % user)
 
 
 def setup(bot):
